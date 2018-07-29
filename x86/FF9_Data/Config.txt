@@ -1,0 +1,5 @@
+Scale                          ----- (Default: 1)	[1.55]	1.55 Recommended
+HD (Requires Reset And Files)  ----- (Default: 0)	[0]	
+Encounter Rate                 ----- (Default: 960)	[560]	560  Recommended
+BattleSwirl                    ----- (Default: 115)	[40]	40   Recommended
+ATB Bar Speed                  ----- (Default: 0)	[3]	3    Recommended
