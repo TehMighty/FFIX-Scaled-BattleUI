@@ -16,7 +16,7 @@ public class HonoluluBattleMain : PersistenSingleton<MonoBehaviour>
 	protected override void Awake()
 	{
 		base.Awake();
-		Application.targetFrameRate = 30;
+		Application.targetFrameRate = 60;
 		this.playerMaterials = new List<Material>();
 		this.monsterMaterials = new List<Material>();
 		FF9StateSystem.Battle.isFade = false;

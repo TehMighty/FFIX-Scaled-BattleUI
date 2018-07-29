@@ -116,7 +116,7 @@ public class BattleHUD : UIScene {
 				int num2;
 				do {
 					byte b;
-					this.currentLibraMessageCount = (b = this.currentLibraMessageCount) + 1;
+					this.currentLibraMessageCount = (byte) ((b = this.currentLibraMessageCount) + 1);
 					if ((num2 = (int) b) >= 8) {
 						goto IL_1D9;
 					}
@@ -135,7 +135,7 @@ public class BattleHUD : UIScene {
 			int num2;
 			do {
 				byte b;
-				this.currentLibraMessageCount = (b = this.currentLibraMessageCount) + 1;
+				this.currentLibraMessageCount = (byte) ((b = this.currentLibraMessageCount) + 1);
 				if ((num2 = (int) b) >= 8) {
 					goto Block_11;
 				}
@@ -170,7 +170,7 @@ public class BattleHUD : UIScene {
 		int num2;
 		do {
 			byte b;
-			this.currentPeepingMessageCount = (b = this.currentPeepingMessageCount) + 1;
+			this.currentPeepingMessageCount = (byte) ((b = this.currentPeepingMessageCount) + 1);
 			int num;
 			if ((num = (int) b) >= this.peepingEnmData.steal_item.Length + 1) {
 				goto Block_4;
