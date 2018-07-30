@@ -72,11 +72,11 @@ public class SFX_Rush
 		checked
 		{
 			this.rush_seq = num + 1;
-			if (num > BattleHUD.BattleSwirl + 5)
+			if (num > BattleHUD.battleSwirl + 5)
 			{
 				return true;
 			}
-			if (this.rush_seq > BattleHUD.BattleSwirl)
+			if (this.rush_seq > BattleHUD.battleSwirl)
 			{
 				SceneDirector.ServiceFade();
 			}

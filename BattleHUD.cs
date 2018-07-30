@@ -8,6 +8,10 @@ using FF9;
 using UnityEngine;
 
 public class BattleHUD : UIScene {
+	public BattleHUD () { }
+
+	static BattleHUD () { }
+
 	public bool AndroidTVOnKeyRightTrigger (GameObject go) {
 		bool result = false;
 		if (base.CheckAndroidTVModule (Control.RightTrigger)) {
@@ -51,7 +55,7 @@ public class BattleHUD : UIScene {
 	private void UpdateMessage () {
 		if (this.BattleDialogGameObject.activeSelf && PersistenSingleton<UIManager>.Instance.State == UIManager.UIState.BattleHUD) {
 			this.battleMessageCounter += Time.deltaTime * (float) FF9StateSystem.Settings.FastForwardFactor;
-			if (this.battleMessageCounter >= (float) BattleHUD.BattleMessageTimeTick[(int) (checked ((IntPtr) FF9StateSystem.Settings.cfg.btl_msg))] / 15f) {
+			if (this.battleMessageCounter >= (float) BattleHUD.BattleMessageTimeTick[(int) ((IntPtr) (checked ((long) FF9StateSystem.Settings.cfg.btl_msg)))] / 15f) {
 				this.BattleDialogGameObject.SetActive (false);
 				this.currentMessagePriority = 0;
 				if (this.currentLibraMessageNumber > 0) {
@@ -66,23 +70,25 @@ public class BattleHUD : UIScene {
 
 	private void DisplayBattleMessage (string str, bool isRect) {
 		this.BattleDialogGameObject.SetActive (false);
-		if (isRect) {
-			this.battleDialogWidget.width = (int) (128f * UIManager.ResourceXMultipier);
-			this.battleDialogWidget.height = 120;
-			this.battleDialogWidget.transform.localPosition = new Vector3 (0f, 445f, 0f);
-		} else {
-			this.battleDialogWidget.width = (int) (240f * UIManager.ResourceXMultipier);
-			if (str.Contains ("\n")) {
-				this.battleDialogWidget.height = 200;
-				this.battleDialogWidget.transform.localPosition = new Vector3 (-10f, 405f, 0f);
-			} else {
+		checked {
+			if (isRect) {
+				this.battleDialogWidget.width = (int) (unchecked (128f * UIManager.ResourceXMultipier));
 				this.battleDialogWidget.height = 120;
-				this.battleDialogWidget.transform.localPosition = new Vector3 (-10f, 445f, 0f);
+				this.battleDialogWidget.transform.localPosition = new Vector3 (0f, 445f, 0f);
+			} else {
+				this.battleDialogWidget.width = (int) (unchecked (240f * UIManager.ResourceXMultipier));
+				if (str.Contains ("\n")) {
+					this.battleDialogWidget.height = 200;
+					this.battleDialogWidget.transform.localPosition = new Vector3 (-10f, 405f, 0f);
+				} else {
+					this.battleDialogWidget.height = 120;
+					this.battleDialogWidget.transform.localPosition = new Vector3 (-10f, 445f, 0f);
+				}
 			}
+			float num = 0f;
+			this.battleDialogLabel.text = this.battleDialogLabel.PhrasePreOpcodeSymbol (str, ref num);
+			this.BattleDialogGameObject.SetActive (true);
 		}
-		float num = 0f;
-		this.battleDialogLabel.text = this.battleDialogLabel.PhrasePreOpcodeSymbol (str, ref num);
-		this.BattleDialogGameObject.SetActive (true);
 	}
 
 	private void DisplayMessageLibra () {
@@ -90,76 +96,78 @@ public class BattleHUD : UIScene {
 			return;
 		}
 		string text = string.Empty;
-		if (this.currentLibraMessageNumber == 1) {
-			if (this.libraBtlData.bi.player != 0) {
-				text = btl_util.getPlayerPtr (this.libraBtlData).name;
-			} else {
-				text = btl_util.getEnemyPtr (this.libraBtlData).et.name;
+		checked {
+			if (this.currentLibraMessageNumber == 1) {
+				if (this.libraBtlData.bi.player != 0) {
+					text = btl_util.getPlayerPtr (this.libraBtlData).name;
+				} else {
+					text = btl_util.getEnemyPtr (this.libraBtlData).et.name;
+				}
+				text += FF9TextTool.BattleLibraText (10);
+				text += this.libraBtlData.level.ToString ();
+				this.currentLibraMessageNumber = 2;
+			} else if (this.currentLibraMessageNumber == 2) {
+				text = FF9TextTool.BattleLibraText (11);
+				text += this.libraBtlData.cur.hp;
+				text += FF9TextTool.BattleLibraText (13);
+				text += this.libraBtlData.max.hp;
+				text += FF9TextTool.BattleLibraText (12);
+				text += this.libraBtlData.cur.mp;
+				text += FF9TextTool.BattleLibraText (13);
+				text += this.libraBtlData.max.mp;
+				this.currentLibraMessageCount = 0;
+				this.currentLibraMessageNumber = 3;
+			} else if (this.currentLibraMessageNumber == 3) {
+				if (this.libraBtlData.bi.player == 0) {
+					int category = (int) FF9StateSystem.Battle.FF9Battle.enemy[(int) this.libraBtlData.bi.slot_no].et.category;
+					int num;
+					do {
+						byte b;
+						this.currentLibraMessageCount = (byte) ((b = this.currentLibraMessageCount) + 1);
+						if ((num = (int) b) >= 8) {
+							goto IL_1BC;
+						}
+					}
+					while ((category & 1 << num) == 0);
+					text = FF9TextTool.BattleLibraText (num);
+					this.SetBattleMessage (text, 2);
+					return;
+				}
+				IL_1BC:
+					this.currentLibraMessageCount = 0;
+				this.currentLibraMessageNumber = 4;
 			}
-			text += FF9TextTool.BattleLibraText (10);
-			text += this.libraBtlData.level.ToString ();
-			this.currentLibraMessageNumber = 2;
-		} else if (this.currentLibraMessageNumber == 2) {
-			text = FF9TextTool.BattleLibraText (11);
-			text += this.libraBtlData.cur.hp;
-			text += FF9TextTool.BattleLibraText (13);
-			text += this.libraBtlData.max.hp;
-			text += FF9TextTool.BattleLibraText (12);
-			text += this.libraBtlData.cur.mp;
-			text += FF9TextTool.BattleLibraText (13);
-			text += this.libraBtlData.max.mp;
-			this.currentLibraMessageCount = 0;
-			this.currentLibraMessageNumber = 3;
-		} else if (this.currentLibraMessageNumber == 3) {
-			if (this.libraBtlData.bi.player == 0) {
-				int num = (int) FF9StateSystem.Battle.FF9Battle.enemy[(int) this.libraBtlData.bi.slot_no].et.category;
-				int num2;
+			if (this.currentLibraMessageNumber == 4) {
+				int num2 = (int) (this.libraBtlData.def_attr.weak & ~(int) this.libraBtlData.def_attr.invalid);
+				int num3;
 				do {
-					byte b;
-					this.currentLibraMessageCount = (byte) ((b = this.currentLibraMessageCount) + 1);
-					if ((num2 = (int) b) >= 8) {
-						goto IL_1D9;
+					byte b2;
+					this.currentLibraMessageCount = (byte) ((b2 = this.currentLibraMessageCount) + 1);
+					if ((num3 = (int) b2) >= 8) {
+						goto IL_269;
 					}
 				}
-				while ((num & 1 << num2) == 0);
-				text = FF9TextTool.BattleLibraText (num2);
+				while ((num2 & 1 << num3) == 0);
+				if (Localization.GetSymbol () == "JP") {
+					text = this.BtlGetAttrName (1 << num3);
+					text += FF9TextTool.BattleLibraText (14);
+				} else {
+					text += FF9TextTool.BattleLibraText (14 + num3);
+				}
 				this.SetBattleMessage (text, 2);
 				return;
+				IL_269:
+					this.currentLibraMessageCount = 0;
+				this.currentLibraMessageNumber = 5;
 			}
-			IL_1D9:
+			if (this.currentLibraMessageNumber == 5) {
+				this.libraBtlData = null;
 				this.currentLibraMessageCount = 0;
-			this.currentLibraMessageNumber = 4;
-		}
-		if (this.currentLibraMessageNumber == 4) {
-			int num = (int) (this.libraBtlData.def_attr.weak & ~(int) this.libraBtlData.def_attr.invalid);
-			int num2;
-			do {
-				byte b;
-				this.currentLibraMessageCount = (byte) ((b = this.currentLibraMessageCount) + 1);
-				if ((num2 = (int) b) >= 8) {
-					goto Block_11;
-				}
-			}
-			while ((num & 1 << num2) == 0);
-			if (Localization.GetSymbol () == "JP") {
-				text = this.BtlGetAttrName (1 << num2);
-				text += FF9TextTool.BattleLibraText (14);
-			} else {
-				text += FF9TextTool.BattleLibraText (14 + num2);
+				this.currentLibraMessageNumber = 0;
+				return;
 			}
 			this.SetBattleMessage (text, 2);
-			return;
-			Block_11:
-				this.currentLibraMessageCount = 0;
-			this.currentLibraMessageNumber = 5;
 		}
-		if (this.currentLibraMessageNumber == 5) {
-			this.libraBtlData = null;
-			this.currentLibraMessageCount = 0;
-			this.currentLibraMessageNumber = 0;
-			return;
-		}
-		this.SetBattleMessage (text, 2);
 	}
 
 	private void DisplayMessagePeeping () {
@@ -167,48 +175,52 @@ public class BattleHUD : UIScene {
 			return;
 		}
 		string text = string.Empty;
-		int num2;
-		do {
-			byte b;
-			this.currentPeepingMessageCount = (byte) ((b = this.currentPeepingMessageCount) + 1);
-			int num;
-			if ((num = (int) b) >= this.peepingEnmData.steal_item.Length + 1) {
-				goto Block_4;
+		checked {
+			int num2;
+			do {
+				byte b;
+				this.currentPeepingMessageCount = (byte) ((b = this.currentPeepingMessageCount) + 1);
+				int num;
+				if ((num = (int) b) >= this.peepingEnmData.steal_item.Length + 1) {
+					goto IL_9C;
+				}
+				num2 = (int) this.peepingEnmData.steal_item[this.peepingEnmData.steal_item.Length - num];
 			}
-			num2 = (int) this.peepingEnmData.steal_item[this.peepingEnmData.steal_item.Length - num];
+			while (num2 == 255);
+			if (Localization.GetSymbol () == "JP") {
+				text = FF9TextTool.ItemName (num2);
+				text += FF9TextTool.BattleLibraText (8);
+			} else {
+				text = FF9TextTool.BattleLibraText (8);
+				text += FF9TextTool.ItemName (num2);
+			}
+			this.SetBattleMessage (text, 2);
+			return;
+			IL_9C:
+				this.peepingEnmData = null;
+			this.currentPeepingMessageCount = 0;
 		}
-		while (num2 == 255);
-		if (Localization.GetSymbol () == "JP") {
-			text = FF9TextTool.ItemName (num2);
-			text += FF9TextTool.BattleLibraText (8);
-		} else {
-			text = FF9TextTool.BattleLibraText (8);
-			text += FF9TextTool.ItemName (num2);
-		}
-		this.SetBattleMessage (text, 2);
-		return;
-		Block_4:
-			this.peepingEnmData = null;
-		this.currentPeepingMessageCount = 0;
 	}
 
 	public void SetBattleFollowMessage (int pMesNo, params object[] args) {
-		string text = FF9TextTool.BattleFollowText (pMesNo + 7);
-		if (string.IsNullOrEmpty (text)) {
-			return;
-		}
-		byte b = (byte) char.GetNumericValue (text[0]);
-		text = text.Substring (1);
-		if (args.Length > 0) {
-			string text2 = args[0].ToString ();
-			int num;
-			if (int.TryParse (text2, out num)) {
-				text = text.Replace ("&", text2);
-			} else {
-				text = text.Replace ("%", text2);
+		checked {
+			string text = FF9TextTool.BattleFollowText (pMesNo + 7);
+			if (string.IsNullOrEmpty (text)) {
+				return;
 			}
+			byte priority = (byte) char.GetNumericValue (text[0]);
+			text = text.Substring (1);
+			if (args.Length != 0) {
+				string text2 = args[0].ToString ();
+				int num;
+				if (int.TryParse (text2, out num)) {
+					text = text.Replace ("&", text2);
+				} else {
+					text = text.Replace ("%", text2);
+				}
+			}
+			this.SetBattleMessage (text, priority);
 		}
-		this.SetBattleMessage (text, b);
 	}
 
 	public void SetBattleCommandTitle (CMD_DATA pCmd) {
@@ -226,7 +238,7 @@ public class BattleHUD : UIScene {
 								if (num < 192) {
 									text = FF9TextTool.ActionAbilityName (num);
 								} else {
-									text = FF9TextTool.BattleCommandTitleText ((num & 63) + 1);
+									text = FF9TextTool.BattleCommandTitleText (checked ((num & 63) + 1));
 								}
 							}
 						} else {
@@ -251,10 +263,12 @@ public class BattleHUD : UIScene {
 
 	public string BtlGetAttrName (int pAttr) {
 		int num = 0;
-		while ((pAttr >>= 1) != 0) {
-			num++;
+		checked {
+			while ((pAttr >>= 1) != 0) {
+				num++;
+			}
+			return FF9TextTool.BattleFollowText (num);
 		}
-		return FF9TextTool.BattleFollowText (num);
 	}
 
 	public void SetBattleLibra (BTL_DATA pBtl) {
@@ -269,16 +283,18 @@ public class BattleHUD : UIScene {
 		}
 		this.peepingEnmData = FF9StateSystem.Battle.FF9Battle.enemy[(int) pBtl.bi.slot_no];
 		bool flag = false;
-		for (int i = 0; i < 4; i++) {
-			if (this.peepingEnmData.steal_item[i] != 255) {
-				flag = true;
-				break;
+		checked {
+			for (int i = 0; i < 4; i++) {
+				if (this.peepingEnmData.steal_item[i] != 255) {
+					flag = true;
+					break;
+				}
 			}
-		}
-		if (!flag) {
-			this.SetBattleMessage (FF9TextTool.BattleLibraText (9), 2);
-			this.currentPeepingMessageCount = 5;
-		} else {
+			if (!flag) {
+				this.SetBattleMessage (FF9TextTool.BattleLibraText (9), 2);
+				this.currentPeepingMessageCount = 5;
+				return;
+			}
 			this.currentPeepingMessageCount = 1;
 			this.DisplayMessagePeeping ();
 		}
@@ -303,72 +319,74 @@ public class BattleHUD : UIScene {
 	private void DisplayCommand () {
 		BTL_DATA btl_DATA = FF9StateSystem.Battle.FF9Battle.btl_data[this.currentPlayerId];
 		byte menu_type = FF9StateSystem.Common.FF9.party.member[(int) btl_DATA.bi.line_no].info.menu_type;
-		byte b;
-		byte b2;
-		if (Status.checkCurStat (btl_DATA, 16384u)) {
-			b = rdata._FF9BMenu_MenuTrance[(int) menu_type, 0];
-			b2 = rdata._FF9BMenu_MenuTrance[(int) menu_type, 1];
-			this.CommandCaptionLabel.text = Localization.Get ("TranceCaption");
-			this.isTranceMenu = true;
-		} else {
-			b = (byte) rdata._FF9BMenu_MenuNormal[(int) menu_type, 0];
-			b2 = (byte) rdata._FF9BMenu_MenuNormal[(int) menu_type, 1];
-			this.CommandCaptionLabel.text = Localization.Get ("CommandCaption");
-			this.CommandCaptionLabel.color = FF9TextTool.White;
-			this.isTranceMenu = false;
-		}
-		string text = FF9TextTool.CommandName ((int) b);
-		string text2 = FF9TextTool.CommandName ((int) b2);
-		bool flag = b != 0;
-		bool flag2 = b2 != 0;
-		if (b2 == 31) {
-			if (!this.magicSwordCond.IsViviExist) {
-				text2 = string.Empty;
-				flag2 = false;
-			} else if (this.magicSwordCond.IsViviDead || this.magicSwordCond.IsSteinerMini) {
-				flag2 = false;
+		checked {
+			byte b;
+			byte b2;
+			if (Status.checkCurStat (btl_DATA, 16384u)) {
+				b = rdata._FF9BMenu_MenuTrance[(int) menu_type, 0];
+				b2 = rdata._FF9BMenu_MenuTrance[(int) menu_type, 1];
+				this.CommandCaptionLabel.text = Localization.Get ("TranceCaption");
+				this.isTranceMenu = true;
+			} else {
+				b = (byte) rdata._FF9BMenu_MenuNormal[(int) menu_type, 0];
+				b2 = (byte) rdata._FF9BMenu_MenuNormal[(int) menu_type, 1];
+				this.CommandCaptionLabel.text = Localization.Get ("CommandCaption");
+				this.CommandCaptionLabel.color = FF9TextTool.White;
+				this.isTranceMenu = false;
 			}
-		}
-		this.commandDetailHUD.Skill1Component.Label.text = text;
-		ButtonGroupState.SetButtonEnable (this.commandDetailHUD.Skill1, flag);
-		ButtonGroupState.SetButtonAnimation (this.commandDetailHUD.Skill1, flag);
-		if (flag) {
-			this.commandDetailHUD.Skill1Component.Label.color = FF9TextTool.White;
-			this.commandDetailHUD.Skill1Component.ButtonGroup.Help.Enable = true;
-			this.commandDetailHUD.Skill1Component.ButtonGroup.Help.TextKey = string.Empty;
-			this.commandDetailHUD.Skill1Component.ButtonGroup.Help.Text = FF9TextTool.CommandHelpDescription ((int) b);
-		} else {
-			this.commandDetailHUD.Skill1Component.Label.color = FF9TextTool.Gray;
-			this.commandDetailHUD.Skill1Component.UIBoxCollider.enabled = flag;
-			this.commandDetailHUD.Skill1Component.ButtonGroup.Help.Enable = false;
-		}
-		this.commandDetailHUD.Skill2Component.Label.text = text2;
-		ButtonGroupState.SetButtonEnable (this.commandDetailHUD.Skill2, flag2);
-		ButtonGroupState.SetButtonAnimation (this.commandDetailHUD.Skill2, flag2);
-		if (flag2) {
-			this.commandDetailHUD.Skill2Component.Label.color = FF9TextTool.White;
-			this.commandDetailHUD.Skill2Component.ButtonGroup.Help.Enable = true;
-			this.commandDetailHUD.Skill2Component.ButtonGroup.Help.TextKey = string.Empty;
-			this.commandDetailHUD.Skill2Component.ButtonGroup.Help.Text = FF9TextTool.CommandHelpDescription ((int) b2);
-		} else {
-			this.commandDetailHUD.Skill2Component.Label.color = FF9TextTool.Gray;
-			this.commandDetailHUD.Skill2Component.UIBoxCollider.enabled = flag2;
-			this.commandDetailHUD.Skill2Component.ButtonGroup.Help.Enable = false;
-		}
-		this.commandDetailHUD.AttackComponent.Label.text = FF9TextTool.CommandName (1);
-		this.commandDetailHUD.DefendComponent.Label.text = FF9TextTool.CommandName (4);
-		this.commandDetailHUD.ItemComponent.Label.text = FF9TextTool.CommandName (14);
-		this.commandDetailHUD.ChangeComponent.Label.text = FF9TextTool.CommandName (7);
-		this.commandDetailHUD.AttackComponent.ButtonGroup.Help.TextKey = string.Empty;
-		this.commandDetailHUD.AttackComponent.ButtonGroup.Help.Text = FF9TextTool.CommandHelpDescription (1);
-		this.commandDetailHUD.DefendComponent.ButtonGroup.Help.TextKey = string.Empty;
-		this.commandDetailHUD.DefendComponent.ButtonGroup.Help.Text = FF9TextTool.CommandHelpDescription (4);
-		this.commandDetailHUD.ItemComponent.ButtonGroup.Help.TextKey = string.Empty;
-		this.commandDetailHUD.ItemComponent.ButtonGroup.Help.Text = FF9TextTool.CommandHelpDescription (14);
-		this.commandDetailHUD.ChangeComponent.ButtonGroup.Help.TextKey = string.Empty;
-		this.commandDetailHUD.ChangeComponent.ButtonGroup.Help.Text = FF9TextTool.CommandHelpDescription (7);
-		if (ButtonGroupState.ActiveGroup == BattleHUD.CommandGroupButton) {
-			this.SetCommandVisibility (true, false);
+			string text = FF9TextTool.CommandName ((int) b);
+			string text2 = FF9TextTool.CommandName ((int) b2);
+			bool flag = b > 0;
+			bool flag2 = b2 > 0;
+			if (b2 == 31) {
+				if (!this.magicSwordCond.IsViviExist) {
+					text2 = string.Empty;
+					flag2 = false;
+				} else if (this.magicSwordCond.IsViviDead || this.magicSwordCond.IsSteinerMini) {
+					flag2 = false;
+				}
+			}
+			this.commandDetailHUD.Skill1Component.Label.text = text;
+			ButtonGroupState.SetButtonEnable (this.commandDetailHUD.Skill1, flag);
+			ButtonGroupState.SetButtonAnimation (this.commandDetailHUD.Skill1, flag);
+			if (flag) {
+				this.commandDetailHUD.Skill1Component.Label.color = FF9TextTool.White;
+				this.commandDetailHUD.Skill1Component.ButtonGroup.Help.Enable = true;
+				this.commandDetailHUD.Skill1Component.ButtonGroup.Help.TextKey = string.Empty;
+				this.commandDetailHUD.Skill1Component.ButtonGroup.Help.Text = FF9TextTool.CommandHelpDescription ((int) b);
+			} else {
+				this.commandDetailHUD.Skill1Component.Label.color = FF9TextTool.Gray;
+				this.commandDetailHUD.Skill1Component.UIBoxCollider.enabled = flag;
+				this.commandDetailHUD.Skill1Component.ButtonGroup.Help.Enable = false;
+			}
+			this.commandDetailHUD.Skill2Component.Label.text = text2;
+			ButtonGroupState.SetButtonEnable (this.commandDetailHUD.Skill2, flag2);
+			ButtonGroupState.SetButtonAnimation (this.commandDetailHUD.Skill2, flag2);
+			if (flag2) {
+				this.commandDetailHUD.Skill2Component.Label.color = FF9TextTool.White;
+				this.commandDetailHUD.Skill2Component.ButtonGroup.Help.Enable = true;
+				this.commandDetailHUD.Skill2Component.ButtonGroup.Help.TextKey = string.Empty;
+				this.commandDetailHUD.Skill2Component.ButtonGroup.Help.Text = FF9TextTool.CommandHelpDescription ((int) b2);
+			} else {
+				this.commandDetailHUD.Skill2Component.Label.color = FF9TextTool.Gray;
+				this.commandDetailHUD.Skill2Component.UIBoxCollider.enabled = flag2;
+				this.commandDetailHUD.Skill2Component.ButtonGroup.Help.Enable = false;
+			}
+			this.commandDetailHUD.AttackComponent.Label.text = FF9TextTool.CommandName (1);
+			this.commandDetailHUD.DefendComponent.Label.text = FF9TextTool.CommandName (4);
+			this.commandDetailHUD.ItemComponent.Label.text = FF9TextTool.CommandName (14);
+			this.commandDetailHUD.ChangeComponent.Label.text = FF9TextTool.CommandName (7);
+			this.commandDetailHUD.AttackComponent.ButtonGroup.Help.TextKey = string.Empty;
+			this.commandDetailHUD.AttackComponent.ButtonGroup.Help.Text = FF9TextTool.CommandHelpDescription (1);
+			this.commandDetailHUD.DefendComponent.ButtonGroup.Help.TextKey = string.Empty;
+			this.commandDetailHUD.DefendComponent.ButtonGroup.Help.Text = FF9TextTool.CommandHelpDescription (4);
+			this.commandDetailHUD.ItemComponent.ButtonGroup.Help.TextKey = string.Empty;
+			this.commandDetailHUD.ItemComponent.ButtonGroup.Help.Text = FF9TextTool.CommandHelpDescription (14);
+			this.commandDetailHUD.ChangeComponent.ButtonGroup.Help.TextKey = string.Empty;
+			this.commandDetailHUD.ChangeComponent.ButtonGroup.Help.Text = FF9TextTool.CommandHelpDescription (7);
+			if (ButtonGroupState.ActiveGroup == BattleHUD.CommandGroupButton) {
+				this.SetCommandVisibility (true, false);
+			}
 		}
 	}
 
@@ -387,143 +405,164 @@ public class BattleHUD : UIScene {
 			2,
 			3
 		});
-		switch (subMode) {
-			case 1:
-				this.hpStatusPanel.SetActive (true);
-				this.hpCaption.SetActive (false);
-				this.mpCaption.SetActive (false);
-				this.atbCaption.SetActive (false);
-				for (BTL_DATA next = FF9StateSystem.Battle.FF9Battle.btl_list.next; next != null; next = next.next) {
-					int num = 0;
-					while (1 << num != (int) next.btl_id) {
-						num++;
-					}
-					if (next.bi.player != 0 && this.matchBattleIdPlayerList.Contains (num)) {
-						int num2 = this.matchBattleIdPlayerList.IndexOf (num);
-						BattleHUD.NumberSubModeHUD numberSubModeHUD = this.hpStatusHudList[num2];
-						numberSubModeHUD.Self.SetActive (true);
-						numberSubModeHUD.Current.text = next.cur.hp.ToString ();
-						numberSubModeHUD.Max.text = next.max.hp.ToString ();
-						BattleHUD.ParameterStatus parameterStatus = this.CheckHPState (next);
-						if (parameterStatus == BattleHUD.ParameterStatus.PARAMSTAT_EMPTY) {
-							numberSubModeHUD.TextColor = FF9TextTool.Red;
-						} else if (parameterStatus == BattleHUD.ParameterStatus.PARAMSTAT_CRITICAL) {
-							numberSubModeHUD.TextColor = FF9TextTool.Yellow;
-						} else {
-							numberSubModeHUD.TextColor = FF9TextTool.White;
+		checked {
+			switch (subMode) {
+				case 1:
+					this.hpStatusPanel.SetActive (true);
+					this.hpCaption.SetActive (false);
+					this.mpCaption.SetActive (false);
+					this.atbCaption.SetActive (false);
+					for (BTL_DATA next = FF9StateSystem.Battle.FF9Battle.btl_list.next; next != null; next = next.next) {
+						int num = 0;
+						while (1 << num != (int) next.btl_id) {
+							num++;
 						}
-						list.Remove (num2);
-					}
-				}
-				foreach (int index in list) {
-					BattleHUD.NumberSubModeHUD numberSubModeHUD2 = this.hpStatusHudList[index];
-					numberSubModeHUD2.Self.SetActive (false);
-				}
-				break;
-			case 2:
-				this.mpStatusPanel.SetActive (true);
-				this.hpCaption.SetActive (false);
-				this.mpCaption.SetActive (false);
-				this.atbCaption.SetActive (false);
-				for (BTL_DATA next2 = FF9StateSystem.Battle.FF9Battle.btl_list.next; next2 != null; next2 = next2.next) {
-					int num3 = 0;
-					while (1 << num3 != (int) next2.btl_id) {
-						num3++;
-					}
-					if (next2.bi.player != 0 && this.matchBattleIdPlayerList.Contains (num3)) {
-						int num4 = this.matchBattleIdPlayerList.IndexOf (num3);
-						BattleHUD.NumberSubModeHUD numberSubModeHUD3 = this.mpStatusHudList[num4];
-						numberSubModeHUD3.Self.SetActive (true);
-						numberSubModeHUD3.Current.text = next2.cur.mp.ToString ();
-						numberSubModeHUD3.Max.text = next2.max.mp.ToString ();
-						BattleHUD.ParameterStatus parameterStatus2 = this.CheckMPState (next2);
-						if (parameterStatus2 == BattleHUD.ParameterStatus.PARAMSTAT_EMPTY) {
-							numberSubModeHUD3.TextColor = FF9TextTool.Yellow;
-						} else {
-							numberSubModeHUD3.TextColor = FF9TextTool.White;
+						if (next.bi.player != 0 && this.matchBattleIdPlayerList.Contains (num)) {
+							int num2 = this.matchBattleIdPlayerList.IndexOf (num);
+							BattleHUD.NumberSubModeHUD numberSubModeHUD = this.hpStatusHudList[num2];
+							numberSubModeHUD.Self.SetActive (true);
+							numberSubModeHUD.Current.text = next.cur.hp.ToString ();
+							numberSubModeHUD.Max.text = next.max.hp.ToString ();
+							BattleHUD.ParameterStatus parameterStatus = this.CheckHPState (next);
+							if (parameterStatus == BattleHUD.ParameterStatus.PARAMSTAT_EMPTY) {
+								numberSubModeHUD.TextColor = FF9TextTool.Red;
+							} else if (parameterStatus == BattleHUD.ParameterStatus.PARAMSTAT_CRITICAL) {
+								numberSubModeHUD.TextColor = FF9TextTool.Yellow;
+							} else {
+								numberSubModeHUD.TextColor = FF9TextTool.White;
+							}
+							list.Remove (num2);
 						}
-						list.Remove (num4);
 					}
+					using (List<int>.Enumerator enumerator = list.GetEnumerator ()) {
+						while (enumerator.MoveNext ()) {
+						int index = enumerator.Current;
+						this.hpStatusHudList[index].Self.SetActive (false);
+						}
+						return;
+					}
+					break;
+				case 2:
+					break;
+				case 3:
+					goto IL_37B;
+				case 4:
+					goto IL_55D;
+				default:
+					return;
+			}
+			this.mpStatusPanel.SetActive (true);
+			this.hpCaption.SetActive (false);
+			this.mpCaption.SetActive (false);
+			this.atbCaption.SetActive (false);
+			for (BTL_DATA next2 = FF9StateSystem.Battle.FF9Battle.btl_list.next; next2 != null; next2 = next2.next) {
+				int num3 = 0;
+				while (1 << num3 != (int) next2.btl_id) {
+					num3++;
 				}
-				foreach (int index2 in list) {
-					BattleHUD.NumberSubModeHUD numberSubModeHUD4 = this.mpStatusHudList[index2];
-					numberSubModeHUD4.Self.SetActive (false);
+				if (next2.bi.player != 0 && this.matchBattleIdPlayerList.Contains (num3)) {
+					int num4 = this.matchBattleIdPlayerList.IndexOf (num3);
+					BattleHUD.NumberSubModeHUD numberSubModeHUD2 = this.mpStatusHudList[num4];
+					numberSubModeHUD2.Self.SetActive (true);
+					numberSubModeHUD2.Current.text = next2.cur.mp.ToString ();
+					numberSubModeHUD2.Max.text = next2.max.mp.ToString ();
+					if (this.CheckMPState (next2) == BattleHUD.ParameterStatus.PARAMSTAT_EMPTY) {
+						numberSubModeHUD2.TextColor = FF9TextTool.Yellow;
+					} else {
+						numberSubModeHUD2.TextColor = FF9TextTool.White;
+					}
+					list.Remove (num4);
 				}
-				break;
-			case 3:
+			}
+			using (List<int>.Enumerator enumerator2 = list.GetEnumerator ()) {
+				while (enumerator2.MoveNext ()) {
+				int index2 = enumerator2.Current;
+				this.mpStatusHudList[index2].Self.SetActive (false);
+				}
+				return;
+			}
+			IL_37B:
 				this.badStatusPanel.SetActive (true);
-				this.hpCaption.SetActive (false);
-				this.mpCaption.SetActive (false);
-				this.atbCaption.SetActive (false);
-				for (BTL_DATA next3 = FF9StateSystem.Battle.FF9Battle.btl_list.next; next3 != null; next3 = next3.next) {
-					int num5 = 0;
-					while (1 << num5 != (int) next3.btl_id) {
-						num5++;
-					}
-					if (next3.bi.player != 0 && this.matchBattleIdPlayerList.Contains (num5)) {
-						int num6 = this.matchBattleIdPlayerList.IndexOf (num5);
-						BattleHUD.StatusSubModeHUD statusSubModeHUD = this.badStatusHudList[num6];
-						uint num7 = next3.stat.cur | next3.stat.permanent;
-						statusSubModeHUD.Self.SetActive (true);
-						foreach (UISprite uisprite in statusSubModeHUD.StatusesSpriteList) {
-							uisprite.alpha = 0f;
+			this.hpCaption.SetActive (false);
+			this.mpCaption.SetActive (false);
+			this.atbCaption.SetActive (false);
+			for (BTL_DATA next3 = FF9StateSystem.Battle.FF9Battle.btl_list.next; next3 != null; next3 = next3.next) {
+				int num5 = 0;
+				while (1 << num5 != (int) next3.btl_id) {
+					num5++;
+				}
+				if (next3.bi.player != 0 && this.matchBattleIdPlayerList.Contains (num5)) {
+					int num6 = this.matchBattleIdPlayerList.IndexOf (num5);
+					BattleHUD.StatusSubModeHUD statusSubModeHUD = this.badStatusHudList[num6];
+					uint num7 = next3.stat.cur | next3.stat.permanent;
+					statusSubModeHUD.Self.SetActive (true);
+					UISprite[] statusesSpriteList = statusSubModeHUD.StatusesSpriteList;
+					int num8;
+					unchecked {
+						for (int i = 0; i < statusesSpriteList.Length; i++) {
+							statusesSpriteList[i].alpha = 0f;
 						}
-						int num8 = 0;
-						foreach (KeyValuePair<uint, byte> keyValuePair in BattleHUD.BadIconDict) {
-							if ((num7 & keyValuePair.Key) != 0u) {
-								statusSubModeHUD.StatusesSpriteList[num8].alpha = 1f;
-								statusSubModeHUD.StatusesSpriteList[num8].spriteName = FF9UIDataTool.IconSpriteName[(int) keyValuePair.Value];
-								num8++;
-								if (num8 > statusSubModeHUD.StatusesSpriteList.Length) {
-									break;
-								}
+						num8 = 0;
+					}
+					foreach (KeyValuePair<uint, byte> keyValuePair in BattleHUD.BadIconDict) {
+						if ((num7 & keyValuePair.Key) != 0u) {
+							statusSubModeHUD.StatusesSpriteList[num8].alpha = 1f;
+							statusSubModeHUD.StatusesSpriteList[num8].spriteName = FF9UIDataTool.IconSpriteName[(int) keyValuePair.Value];
+							num8++;
+							if (num8 > statusSubModeHUD.StatusesSpriteList.Length) {
+								break;
 							}
 						}
-						list.Remove (num6);
 					}
+					list.Remove (num6);
 				}
-				foreach (int index3 in list) {
-					BattleHUD.StatusSubModeHUD statusSubModeHUD2 = this.badStatusHudList[index3];
-					statusSubModeHUD2.Self.SetActive (false);
+			}
+			using (List<int>.Enumerator enumerator3 = list.GetEnumerator ()) {
+				while (enumerator3.MoveNext ()) {
+				int index3 = enumerator3.Current;
+				this.badStatusHudList[index3].Self.SetActive (false);
 				}
-				break;
-			case 4:
+				return;
+			}
+			IL_55D:
 				this.goodStatusPanel.SetActive (true);
-				this.hpCaption.SetActive (false);
-				this.mpCaption.SetActive (false);
-				this.atbCaption.SetActive (false);
-				for (BTL_DATA next4 = FF9StateSystem.Battle.FF9Battle.btl_list.next; next4 != null; next4 = next4.next) {
-					int num9 = 0;
-					while (1 << num9 != (int) next4.btl_id) {
-						num9++;
-					}
-					if (next4.bi.player != 0 && this.matchBattleIdPlayerList.Contains (num9)) {
-						int num10 = this.matchBattleIdPlayerList.IndexOf (num9);
-						BattleHUD.StatusSubModeHUD statusSubModeHUD3 = this.goodStatusHudList[num10];
-						uint num11 = next4.stat.cur | next4.stat.permanent;
-						statusSubModeHUD3.Self.SetActive (true);
-						foreach (UISprite uisprite2 in statusSubModeHUD3.StatusesSpriteList) {
-							uisprite2.alpha = 0f;
+			this.hpCaption.SetActive (false);
+			this.mpCaption.SetActive (false);
+			this.atbCaption.SetActive (false);
+			for (BTL_DATA next4 = FF9StateSystem.Battle.FF9Battle.btl_list.next; next4 != null; next4 = next4.next) {
+				int num9 = 0;
+				while (1 << num9 != (int) next4.btl_id) {
+					num9++;
+				}
+				if (next4.bi.player != 0 && this.matchBattleIdPlayerList.Contains (num9)) {
+					int num10 = this.matchBattleIdPlayerList.IndexOf (num9);
+					BattleHUD.StatusSubModeHUD statusSubModeHUD2 = this.goodStatusHudList[num10];
+					uint num11 = next4.stat.cur | next4.stat.permanent;
+					statusSubModeHUD2.Self.SetActive (true);
+					UISprite[] statusesSpriteList2 = statusSubModeHUD2.StatusesSpriteList;
+					int num12;
+					unchecked {
+						for (int j = 0; j < statusesSpriteList2.Length; j++) {
+							statusesSpriteList2[j].alpha = 0f;
 						}
-						int num12 = 0;
-						foreach (KeyValuePair<uint, byte> keyValuePair2 in BattleHUD.GoodIconDict) {
-							if ((num11 & keyValuePair2.Key) != 0u) {
-								statusSubModeHUD3.StatusesSpriteList[num12].alpha = 1f;
-								statusSubModeHUD3.StatusesSpriteList[num12].spriteName = FF9UIDataTool.IconSpriteName[(int) keyValuePair2.Value];
-								num12++;
-								if (num12 > statusSubModeHUD3.StatusesSpriteList.Length) {
-									break;
-								}
+						num12 = 0;
+					}
+					foreach (KeyValuePair<uint, byte> keyValuePair2 in BattleHUD.GoodIconDict) {
+						if ((num11 & keyValuePair2.Key) != 0u) {
+							statusSubModeHUD2.StatusesSpriteList[num12].alpha = 1f;
+							statusSubModeHUD2.StatusesSpriteList[num12].spriteName = FF9UIDataTool.IconSpriteName[(int) keyValuePair2.Value];
+							num12++;
+							if (num12 > statusSubModeHUD2.StatusesSpriteList.Length) {
+								break;
 							}
 						}
-						list.Remove (num10);
 					}
+					list.Remove (num10);
 				}
-				foreach (int index4 in list) {
-					BattleHUD.StatusSubModeHUD statusSubModeHUD4 = this.goodStatusHudList[index4];
-					statusSubModeHUD4.Self.SetActive (false);
-				}
-				break;
+			}
+			foreach (int index4 in list) {
+				this.goodStatusHudList[index4].Self.SetActive (false);
+			}
 		}
 	}
 
@@ -542,110 +581,125 @@ public class BattleHUD : UIScene {
 	private void DisplayItemRealTime () {
 		if (this.needItemUpdate) {
 			this.needItemUpdate = false;
-			rdata.FF9COMMAND ff9COMMAND = rdata._FF9FAbil_ComData[(int) ((UIntPtr) this.currentCommandId)];
+			rdata.FF9COMMAND ff9COMMAND = rdata._FF9FAbil_ComData[checked ((int) ((uint) ((UIntPtr) this.currentCommandId)))];
 			this.DisplayItem (ff9COMMAND.type == 3);
 		}
 	}
 
 	private void DisplayStatusRealtime () {
-		if (this.hpStatusPanel.activeSelf) {
-			for (BTL_DATA next = FF9StateSystem.Battle.FF9Battle.btl_list.next; next != null; next = next.next) {
-				if (next.bi.player != 0) {
-					int num = 0;
-					while (1 << num != (int) next.btl_id) {
-						num++;
-					}
-					if (this.matchBattleIdPlayerList.Contains (num)) {
-						int index = this.matchBattleIdPlayerList.IndexOf (num);
-						BattleHUD.NumberSubModeHUD numberSubModeHUD = this.hpStatusHudList[index];
-						numberSubModeHUD.Self.SetActive (true);
-						numberSubModeHUD.Current.text = next.cur.hp.ToString ();
-						numberSubModeHUD.Max.text = next.max.hp.ToString ();
-						BattleHUD.ParameterStatus parameterStatus = this.CheckHPState (next);
-						if (parameterStatus == BattleHUD.ParameterStatus.PARAMSTAT_EMPTY) {
-							numberSubModeHUD.TextColor = FF9TextTool.Red;
-						} else if (parameterStatus == BattleHUD.ParameterStatus.PARAMSTAT_CRITICAL) {
-							numberSubModeHUD.TextColor = FF9TextTool.Yellow;
-						} else {
-							numberSubModeHUD.TextColor = FF9TextTool.White;
+		checked {
+			if (this.hpStatusPanel.activeSelf) {
+				for (BTL_DATA next = FF9StateSystem.Battle.FF9Battle.btl_list.next; next != null; next = next.next) {
+					if (next.bi.player != 0) {
+						int num = 0;
+						while (1 << num != (int) next.btl_id) {
+							num++;
+						}
+						if (this.matchBattleIdPlayerList.Contains (num)) {
+							int index = this.matchBattleIdPlayerList.IndexOf (num);
+							BattleHUD.NumberSubModeHUD numberSubModeHUD = this.hpStatusHudList[index];
+							numberSubModeHUD.Self.SetActive (true);
+							numberSubModeHUD.Current.text = next.cur.hp.ToString ();
+							numberSubModeHUD.Max.text = next.max.hp.ToString ();
+							BattleHUD.ParameterStatus parameterStatus = this.CheckHPState (next);
+							if (parameterStatus == BattleHUD.ParameterStatus.PARAMSTAT_EMPTY) {
+								numberSubModeHUD.TextColor = FF9TextTool.Red;
+							} else if (parameterStatus == BattleHUD.ParameterStatus.PARAMSTAT_CRITICAL) {
+								numberSubModeHUD.TextColor = FF9TextTool.Yellow;
+							} else {
+								numberSubModeHUD.TextColor = FF9TextTool.White;
+							}
 						}
 					}
 				}
+				return;
 			}
-		} else if (this.mpStatusPanel.activeSelf) {
-			for (BTL_DATA next2 = FF9StateSystem.Battle.FF9Battle.btl_list.next; next2 != null; next2 = next2.next) {
-				if (next2.bi.player != 0) {
-					int num2 = 0;
-					while (1 << num2 != (int) next2.btl_id) {
-						num2++;
-					}
-					if (this.matchBattleIdPlayerList.Contains (num2)) {
-						int index2 = this.matchBattleIdPlayerList.IndexOf (num2);
-						BattleHUD.NumberSubModeHUD numberSubModeHUD2 = this.mpStatusHudList[index2];
-						numberSubModeHUD2.Self.SetActive (true);
-						numberSubModeHUD2.Current.text = next2.cur.mp.ToString ();
-						numberSubModeHUD2.Max.text = next2.max.mp.ToString ();
-						BattleHUD.ParameterStatus parameterStatus2 = this.CheckMPState (next2);
-						if (parameterStatus2 == BattleHUD.ParameterStatus.PARAMSTAT_EMPTY) {
-							numberSubModeHUD2.TextColor = FF9TextTool.Yellow;
-						} else {
-							numberSubModeHUD2.TextColor = FF9TextTool.White;
+			if (this.mpStatusPanel.activeSelf) {
+				for (BTL_DATA next2 = FF9StateSystem.Battle.FF9Battle.btl_list.next; next2 != null; next2 = next2.next) {
+					if (next2.bi.player != 0) {
+						int num2 = 0;
+						while (1 << num2 != (int) next2.btl_id) {
+							num2++;
+						}
+						if (this.matchBattleIdPlayerList.Contains (num2)) {
+							int index2 = this.matchBattleIdPlayerList.IndexOf (num2);
+							BattleHUD.NumberSubModeHUD numberSubModeHUD2 = this.mpStatusHudList[index2];
+							numberSubModeHUD2.Self.SetActive (true);
+							numberSubModeHUD2.Current.text = next2.cur.mp.ToString ();
+							numberSubModeHUD2.Max.text = next2.max.mp.ToString ();
+							if (this.CheckMPState (next2) == BattleHUD.ParameterStatus.PARAMSTAT_EMPTY) {
+								numberSubModeHUD2.TextColor = FF9TextTool.Yellow;
+							} else {
+								numberSubModeHUD2.TextColor = FF9TextTool.White;
+							}
 						}
 					}
 				}
+				return;
 			}
-		} else if (this.badStatusPanel.activeSelf) {
-			for (BTL_DATA next3 = FF9StateSystem.Battle.FF9Battle.btl_list.next; next3 != null; next3 = next3.next) {
-				if (next3.bi.player != 0) {
-					int num3 = 0;
-					while (1 << num3 != (int) next3.btl_id) {
-						num3++;
-					}
-					if (this.matchBattleIdPlayerList.Contains (num3)) {
-						int index3 = this.matchBattleIdPlayerList.IndexOf (num3);
-						BattleHUD.StatusSubModeHUD statusSubModeHUD = this.badStatusHudList[index3];
-						uint num4 = next3.stat.cur | next3.stat.permanent;
-						statusSubModeHUD.Self.SetActive (true);
-						foreach (UISprite uisprite in statusSubModeHUD.StatusesSpriteList) {
-							uisprite.alpha = 0f;
+			if (this.badStatusPanel.activeSelf) {
+				for (BTL_DATA next3 = FF9StateSystem.Battle.FF9Battle.btl_list.next; next3 != null; next3 = next3.next) {
+					if (next3.bi.player != 0) {
+						int num3 = 0;
+						while (1 << num3 != (int) next3.btl_id) {
+							num3++;
 						}
-						int num5 = 0;
-						foreach (KeyValuePair<uint, byte> keyValuePair in BattleHUD.BadIconDict) {
-							if ((num4 & keyValuePair.Key) != 0u) {
-								statusSubModeHUD.StatusesSpriteList[num5].alpha = 1f;
-								statusSubModeHUD.StatusesSpriteList[num5].spriteName = FF9UIDataTool.IconSpriteName[(int) keyValuePair.Value];
-								num5++;
-								if (num5 > statusSubModeHUD.StatusesSpriteList.Length) {
-									break;
+						if (this.matchBattleIdPlayerList.Contains (num3)) {
+							int index3 = this.matchBattleIdPlayerList.IndexOf (num3);
+							BattleHUD.StatusSubModeHUD statusSubModeHUD = this.badStatusHudList[index3];
+							uint num4 = next3.stat.cur | next3.stat.permanent;
+							statusSubModeHUD.Self.SetActive (true);
+							UISprite[] statusesSpriteList = statusSubModeHUD.StatusesSpriteList;
+							int num5;
+							unchecked {
+								for (int i = 0; i < statusesSpriteList.Length; i++) {
+									statusesSpriteList[i].alpha = 0f;
+								}
+								num5 = 0;
+							}
+							foreach (KeyValuePair<uint, byte> keyValuePair in BattleHUD.BadIconDict) {
+								if ((num4 & keyValuePair.Key) != 0u) {
+									statusSubModeHUD.StatusesSpriteList[num5].alpha = 1f;
+									statusSubModeHUD.StatusesSpriteList[num5].spriteName = FF9UIDataTool.IconSpriteName[(int) keyValuePair.Value];
+									num5++;
+									if (num5 > statusSubModeHUD.StatusesSpriteList.Length) {
+										break;
+									}
 								}
 							}
 						}
 					}
 				}
+				return;
 			}
-		} else if (this.goodStatusPanel.activeSelf) {
-			for (BTL_DATA next4 = FF9StateSystem.Battle.FF9Battle.btl_list.next; next4 != null; next4 = next4.next) {
-				if (next4.bi.player != 0) {
-					int num6 = 0;
-					while (1 << num6 != (int) next4.btl_id) {
-						num6++;
-					}
-					if (this.matchBattleIdPlayerList.Contains (num6)) {
-						int index4 = this.matchBattleIdPlayerList.IndexOf (num6);
-						BattleHUD.StatusSubModeHUD statusSubModeHUD2 = this.goodStatusHudList[index4];
-						uint num7 = next4.stat.cur | next4.stat.permanent;
-						statusSubModeHUD2.Self.SetActive (true);
-						foreach (UISprite uisprite2 in statusSubModeHUD2.StatusesSpriteList) {
-							uisprite2.alpha = 0f;
+			if (this.goodStatusPanel.activeSelf) {
+				for (BTL_DATA next4 = FF9StateSystem.Battle.FF9Battle.btl_list.next; next4 != null; next4 = next4.next) {
+					if (next4.bi.player != 0) {
+						int num6 = 0;
+						while (1 << num6 != (int) next4.btl_id) {
+							num6++;
 						}
-						int num8 = 0;
-						foreach (KeyValuePair<uint, byte> keyValuePair2 in BattleHUD.GoodIconDict) {
-							if ((num7 & keyValuePair2.Key) != 0u) {
-								statusSubModeHUD2.StatusesSpriteList[num8].alpha = 1f;
-								statusSubModeHUD2.StatusesSpriteList[num8].spriteName = FF9UIDataTool.IconSpriteName[(int) keyValuePair2.Value];
-								num8++;
-								if (num8 > statusSubModeHUD2.StatusesSpriteList.Length) {
-									break;
+						if (this.matchBattleIdPlayerList.Contains (num6)) {
+							int index4 = this.matchBattleIdPlayerList.IndexOf (num6);
+							BattleHUD.StatusSubModeHUD statusSubModeHUD2 = this.goodStatusHudList[index4];
+							uint num7 = next4.stat.cur | next4.stat.permanent;
+							statusSubModeHUD2.Self.SetActive (true);
+							UISprite[] statusesSpriteList2 = statusSubModeHUD2.StatusesSpriteList;
+							int num8;
+							unchecked {
+								for (int j = 0; j < statusesSpriteList2.Length; j++) {
+									statusesSpriteList2[j].alpha = 0f;
+								}
+								num8 = 0;
+							}
+							foreach (KeyValuePair<uint, byte> keyValuePair2 in BattleHUD.GoodIconDict) {
+								if ((num7 & keyValuePair2.Key) != 0u) {
+									statusSubModeHUD2.StatusesSpriteList[num8].alpha = 1f;
+									statusSubModeHUD2.StatusesSpriteList[num8].spriteName = FF9UIDataTool.IconSpriteName[(int) keyValuePair2.Value];
+									num8++;
+									if (num8 > statusSubModeHUD2.StatusesSpriteList.Length) {
+										break;
+									}
 								}
 							}
 						}
@@ -667,14 +721,12 @@ public class BattleHUD : UIScene {
 							Id = (int) ff9ITEM.id
 					});
 				}
-			} else {
-				if (citem.YCITEM_IS_THROW ((int) ff9ITEM.id) && ff9ITEM.count > 0) {
-					this.itemIdList.Add ((int) ff9ITEM.id);
-					list.Add (new BattleHUD.BattleItemListData {
-						Count = (int) ff9ITEM.count,
-							Id = (int) ff9ITEM.id
-					});
-				}
+			} else if (citem.YCITEM_IS_THROW ((int) ff9ITEM.id) && ff9ITEM.count > 0) {
+				this.itemIdList.Add ((int) ff9ITEM.id);
+				list.Add (new BattleHUD.BattleItemListData {
+					Count = (int) ff9ITEM.count,
+						Id = (int) ff9ITEM.id
+				});
 			}
 		}
 		if (list.Count == 0) {
@@ -689,10 +741,10 @@ public class BattleHUD : UIScene {
 			this.itemScrollList.OnRecycleListItemClick += this.OnListItemClick;
 			this.itemScrollList.Invoke ("RepositionList", 0.1f);
 			this.itemScrollList.InitTableView (list, 0);
-		} else {
-			this.itemScrollList.SetOriginalData (list);
-			this.itemScrollList.Invoke ("RepositionList", 0.1f);
+			return;
 		}
+		this.itemScrollList.SetOriginalData (list);
+		this.itemScrollList.Invoke ("RepositionList", 0.1f);
 	}
 
 	public void DisplayItemDetail (Transform item, ListDataTypeBase data, int index, bool isInit) {
@@ -708,31 +760,32 @@ public class BattleHUD : UIScene {
 			itemListDetailWithIconHUD.Button.Help.Enable = false;
 			itemListDetailWithIconHUD.Button.Help.TextKey = string.Empty;
 			itemListDetailWithIconHUD.Button.Help.Text = string.Empty;
-		} else {
-			FF9UIDataTool.DisplayItem (battleItemListData.Id, itemListDetailWithIconHUD.IconSprite, itemListDetailWithIconHUD.NameLabel, true);
-			itemListDetailWithIconHUD.NumberLabel.text = battleItemListData.Count.ToString ();
-			itemListDetailWithIconHUD.Button.Help.Enable = true;
-			itemListDetailWithIconHUD.Button.Help.TextKey = string.Empty;
-			itemListDetailWithIconHUD.Button.Help.Text = FF9TextTool.ItemBattleDescription (battleItemListData.Id);
+			return;
 		}
+		FF9UIDataTool.DisplayItem (battleItemListData.Id, itemListDetailWithIconHUD.IconSprite, itemListDetailWithIconHUD.NameLabel, true);
+		itemListDetailWithIconHUD.NumberLabel.text = battleItemListData.Count.ToString ();
+		itemListDetailWithIconHUD.Button.Help.Enable = true;
+		itemListDetailWithIconHUD.Button.Help.TextKey = string.Empty;
+		itemListDetailWithIconHUD.Button.Help.Text = FF9TextTool.ItemBattleDescription (battleItemListData.Id);
 	}
 
 	private void DisplayAbility () {
-		rdata.FF9COMMAND ff9COMMAND = rdata._FF9FAbil_ComData[(int) ((uint) ((UIntPtr) this.currentCommandId))];
-		this.SetAbilityAp (this.abilityDetailDict[this.currentPlayerId]);
-		List<ListDataTypeBase> list = new List<ListDataTypeBase> ();
-		for (int i = (int) ff9COMMAND.ability; i < (int) ff9COMMAND.ability + (int) ff9COMMAND.count; i++) {
-			list.Add (new BattleHUD.BattleAbilityListData {
-				Index = i
-			});
-		}
-		bool flag = this.abilityScrollList.ItemsPool.Count == 0;
-		if (flag) {
-			this.abilityScrollList.PopulateListItemWithData = new Action<Transform, ListDataTypeBase, int, bool> (this.DisplayAbilityDetail);
-			this.abilityScrollList.OnRecycleListItemClick += this.OnListItemClick;
-			this.abilityScrollList.Invoke ("RepositionList", 0.1f);
-			this.abilityScrollList.InitTableView (list, 0);
-		} else {
+		checked {
+			rdata.FF9COMMAND ff9COMMAND = rdata._FF9FAbil_ComData[(int) ((uint) ((UIntPtr) this.currentCommandId))];
+			this.SetAbilityAp (this.abilityDetailDict[this.currentPlayerId]);
+			List<ListDataTypeBase> list = new List<ListDataTypeBase> ();
+			for (int i = (int) ff9COMMAND.ability; i < (int) ff9COMMAND.ability + (int) ff9COMMAND.count; i++) {
+				list.Add (new BattleHUD.BattleAbilityListData {
+					Index = i
+				});
+			}
+			if (this.abilityScrollList.ItemsPool.Count == 0) {
+				this.abilityScrollList.PopulateListItemWithData = new Action<Transform, ListDataTypeBase, int, bool> (this.DisplayAbilityDetail);
+				this.abilityScrollList.OnRecycleListItemClick += this.OnListItemClick;
+				this.abilityScrollList.Invoke ("RepositionList", 0.1f);
+				this.abilityScrollList.InitTableView (list, 0);
+				return;
+			}
 			this.abilityScrollList.SetOriginalData (list);
 			this.abilityScrollList.Invoke ("RepositionList", 0.1f);
 		}
@@ -752,27 +805,27 @@ public class BattleHUD : UIScene {
 			ButtonGroupState.SetButtonAnimation (itemListDetailHUD.Self, false);
 			itemListDetailHUD.Button.Help.TextKey = string.Empty;
 			itemListDetailHUD.Button.Help.Text = string.Empty;
-		} else {
-			itemListDetailHUD.Content.SetActive (true);
-			itemListDetailHUD.NameLabel.text = FF9TextTool.ActionAbilityName (num);
-			int mp = this.GetMp (aaData);
-			if (mp != 0) {
-				itemListDetailHUD.NumberLabel.text = mp.ToString ();
-			} else {
-				itemListDetailHUD.NumberLabel.text = string.Empty;
-			}
-			if (abilityState == BattleHUD.AbilityStatus.ABILSTAT_DISABLE) {
-				itemListDetailHUD.NameLabel.color = FF9TextTool.Gray;
-				itemListDetailHUD.NumberLabel.color = FF9TextTool.Gray;
-				ButtonGroupState.SetButtonAnimation (itemListDetailHUD.Self, false);
-			} else {
-				itemListDetailHUD.NameLabel.color = FF9TextTool.White;
-				itemListDetailHUD.NumberLabel.color = FF9TextTool.White;
-				ButtonGroupState.SetButtonAnimation (itemListDetailHUD.Self, true);
-			}
-			itemListDetailHUD.Button.Help.TextKey = string.Empty;
-			itemListDetailHUD.Button.Help.Text = FF9TextTool.ActionAbilityHelpDescription (num);
+			return;
 		}
+		itemListDetailHUD.Content.SetActive (true);
+		itemListDetailHUD.NameLabel.text = FF9TextTool.ActionAbilityName (num);
+		int mp = this.GetMp (aaData);
+		if (mp != 0) {
+			itemListDetailHUD.NumberLabel.text = mp.ToString ();
+		} else {
+			itemListDetailHUD.NumberLabel.text = string.Empty;
+		}
+		if (abilityState == BattleHUD.AbilityStatus.ABILSTAT_DISABLE) {
+			itemListDetailHUD.NameLabel.color = FF9TextTool.Gray;
+			itemListDetailHUD.NumberLabel.color = FF9TextTool.Gray;
+			ButtonGroupState.SetButtonAnimation (itemListDetailHUD.Self, false);
+		} else {
+			itemListDetailHUD.NameLabel.color = FF9TextTool.White;
+			itemListDetailHUD.NumberLabel.color = FF9TextTool.White;
+			ButtonGroupState.SetButtonAnimation (itemListDetailHUD.Self, true);
+		}
+		itemListDetailHUD.Button.Help.TextKey = string.Empty;
+		itemListDetailHUD.Button.Help.Text = FF9TextTool.ActionAbilityHelpDescription (num);
 	}
 
 	public void DisplayInfomation () {
@@ -781,38 +834,42 @@ public class BattleHUD : UIScene {
 
 	private void DisplayParty () {
 		int i = 0;
-		for (BTL_DATA next = FF9StateSystem.Battle.FF9Battle.btl_list.next; next != null; next = next.next) {
-			int num = 0;
-			while (1 << num != (int) next.btl_id) {
-				num++;
+		checked {
+			for (BTL_DATA next = FF9StateSystem.Battle.FF9Battle.btl_list.next; next != null; next = next.next) {
+				int num = 0;
+				while (1 << num != (int) next.btl_id) {
+					num++;
+				}
+				if (next.bi.player > 0) {
+					BattleHUD.PlayerDetailHUD playerDetailHUD = this.playerDetailPanelList[i];
+					BattleHUD.InfoVal hp = this.hpInfoVal[i];
+					BattleHUD.InfoVal mp = this.mpInfoVal[i];
+					playerDetailHUD.PlayerId = num;
+					playerDetailHUD.Self.SetActive (true);
+					this.DisplayCharacterParameter (playerDetailHUD, next, hp, mp);
+					playerDetailHUD.TranceSliderGameObject.SetActive (next.bi.t_gauge > 0);
+					i++;
+				}
 			}
-			if (next.bi.player > 0) {
-				BattleHUD.PlayerDetailHUD playerDetailHUD = this.playerDetailPanelList[i];
-				BattleHUD.InfoVal hp = this.hpInfoVal[i];
-				BattleHUD.InfoVal mp = this.mpInfoVal[i];
-				playerDetailHUD.PlayerId = num;
-				playerDetailHUD.Self.SetActive (true);
-				this.DisplayCharacterParameter (playerDetailHUD, next, hp, mp);
-				playerDetailHUD.TranceSliderGameObject.SetActive (next.bi.t_gauge > 0);
+			while (i < this.playerDetailPanelList.Count) {
+				this.playerDetailPanelList[i].Self.SetActive (false);
+				this.playerDetailPanelList[i].PlayerId = -1;
 				i++;
 			}
-		}
-		while (i < this.playerDetailPanelList.Count) {
-			this.playerDetailPanelList[i].Self.SetActive (false);
-			this.playerDetailPanelList[i].PlayerId = -1;
-			i++;
 		}
 	}
 
 	public void DisplayPartyRealtime () {
 		int num = 0;
-		for (BTL_DATA next = FF9StateSystem.Battle.FF9Battle.btl_list.next; next != null; next = next.next) {
-			if (next.bi.player != 0) {
-				BattleHUD.PlayerDetailHUD playerHud = this.playerDetailPanelList[num];
-				BattleHUD.InfoVal hp = this.hpInfoVal[num];
-				BattleHUD.InfoVal mp = this.mpInfoVal[num];
-				num++;
-				this.DisplayCharacterParameter (playerHud, next, hp, mp);
+		checked {
+			for (BTL_DATA next = FF9StateSystem.Battle.FF9Battle.btl_list.next; next != null; next = next.next) {
+				if (next.bi.player != 0) {
+					BattleHUD.PlayerDetailHUD playerHud = this.playerDetailPanelList[num];
+					BattleHUD.InfoVal hp = this.hpInfoVal[num];
+					BattleHUD.InfoVal mp = this.mpInfoVal[num];
+					num++;
+					this.DisplayCharacterParameter (playerHud, next, hp, mp);
+				}
 			}
 		}
 	}
@@ -823,162 +880,164 @@ public class BattleHUD : UIScene {
 		int num2 = this.playerCount;
 		int num3 = 0;
 		int num4 = 0;
-		for (BTL_DATA next = FF9StateSystem.Battle.FF9Battle.btl_list.next; next != null; next = next.next) {
-			if (next.bi.player != 0) {
-				if (next.bi.target != 0) {
-					num4++;
-				}
-			} else if (next.bi.target != 0) {
-				num3++;
-			}
-		}
-		if (num3 != num || num4 != num2) {
-			flag = true;
-			this.matchBattleIdPlayerList.Clear ();
-			this.currentCharacterHp.Clear ();
-			this.matchBattleIdEnemyList.Clear ();
-			this.currentEnemyDieState.Clear ();
-			this.enemyCount = num3;
-			this.playerCount = num4;
-		}
-		int num5 = 0;
-		int num6 = 0;
-		for (BTL_DATA next2 = FF9StateSystem.Battle.FF9Battle.btl_list.next; next2 != null; next2 = next2.next) {
-			int num7 = 0;
-			while (1 << num7 != (int) next2.btl_id) {
-				num7++;
-			}
-			if (next2.btl_id != 0 && next2.bi.target != 0) {
-				if (next2.bi.player != 0) {
-					BattleHUD.ParameterStatus parameterStatus = this.CheckHPState (next2);
-					if (num5 >= this.currentCharacterHp.Count) {
-						this.currentCharacterHp.Add (parameterStatus);
-						this.matchBattleIdPlayerList.Add (num7);
-						flag = true;
-					} else if (parameterStatus != this.currentCharacterHp[num5]) {
-						this.currentCharacterHp[num5] = parameterStatus;
-						flag = true;
+		checked {
+			for (BTL_DATA next = FF9StateSystem.Battle.FF9Battle.btl_list.next; next != null; next = next.next) {
+				if (next.bi.player != 0) {
+					if (next.bi.target != 0) {
+						num4++;
 					}
-					num5++;
-				} else {
-					bool flag2 = Status.checkCurStat (next2, 256u);
-					if (num6 >= this.currentEnemyDieState.Count) {
-						this.currentEnemyDieState.Add (flag2);
-						this.matchBattleIdEnemyList.Add (num7);
-						flag = true;
-					} else if (flag2 != this.currentEnemyDieState[num6]) {
-						this.currentEnemyDieState[num6] = flag2;
-						flag = true;
-					}
-					num6++;
+				} else if (next.bi.target != 0) {
+					num3++;
 				}
 			}
-		}
-		if (!flag) {
-			return;
-		}
-		foreach (BattleHUD.TargetHUD targetHUD in this.targetHudList) {
-			targetHUD.KeyNavigate.startsSelected = false;
-			targetHUD.Self.SetActive (false);
-		}
-		GameObject gameObject = null;
-		int num8 = 0;
-		int num9 = 4;
-		if (this.cursorType == BattleHUD.CursorGroup.Individual) {
-			gameObject = ButtonGroupState.ActiveButton;
-		}
-		for (BTL_DATA next3 = FF9StateSystem.Battle.FF9Battle.btl_list.next; next3 != null; next3 = next3.next) {
-			if (next3.btl_id != 0 && next3.bi.target != 0) {
-				if (next3.bi.player != 0) {
-					BattleHUD.TargetHUD targetHUD2 = this.targetHudList[num8];
-					GameObject self = targetHUD2.Self;
-					UILabel nameLabel = targetHUD2.NameLabel;
-					self.SetActive (true);
-					nameLabel.text = btl_util.getPlayerPtr (next3).name;
-					if (this.currentCharacterHp[num8] == BattleHUD.ParameterStatus.PARAMSTAT_EMPTY) {
-						if (this.cursorType == BattleHUD.CursorGroup.Individual) {
-							if (this.targetDead == 0) {
-								ButtonGroupState.SetButtonEnable (self, false);
-								if (self == gameObject) {
-									int firstPlayer = this.GetFirstPlayer ();
-									if (firstPlayer != -1) {
-										this.currentTargetIndex = firstPlayer;
-										gameObject = this.targetHudList[firstPlayer].Self;
-									} else {
-										global::Debug.LogError ("NO player active !!");
+			if (num3 != num || num4 != num2) {
+				flag = true;
+				this.matchBattleIdPlayerList.Clear ();
+				this.currentCharacterHp.Clear ();
+				this.matchBattleIdEnemyList.Clear ();
+				this.currentEnemyDieState.Clear ();
+				this.enemyCount = num3;
+				this.playerCount = num4;
+			}
+			int num5 = 0;
+			int num6 = 0;
+			for (BTL_DATA next2 = FF9StateSystem.Battle.FF9Battle.btl_list.next; next2 != null; next2 = next2.next) {
+				int num7 = 0;
+				while (1 << num7 != (int) next2.btl_id) {
+					num7++;
+				}
+				if (next2.btl_id != 0 && next2.bi.target != 0) {
+					if (next2.bi.player != 0) {
+						BattleHUD.ParameterStatus parameterStatus = this.CheckHPState (next2);
+						if (num5 >= this.currentCharacterHp.Count) {
+							this.currentCharacterHp.Add (parameterStatus);
+							this.matchBattleIdPlayerList.Add (num7);
+							flag = true;
+						} else if (parameterStatus != this.currentCharacterHp[num5]) {
+							this.currentCharacterHp[num5] = parameterStatus;
+							flag = true;
+						}
+						num5++;
+					} else {
+						bool flag2 = Status.checkCurStat (next2, 256u);
+						if (num6 >= this.currentEnemyDieState.Count) {
+							this.currentEnemyDieState.Add (flag2);
+							this.matchBattleIdEnemyList.Add (num7);
+							flag = true;
+						} else if (flag2 != this.currentEnemyDieState[num6]) {
+							this.currentEnemyDieState[num6] = flag2;
+							flag = true;
+						}
+						num6++;
+					}
+				}
+			}
+			if (!flag) {
+				return;
+			}
+			foreach (BattleHUD.TargetHUD targetHUD in this.targetHudList) {
+				targetHUD.KeyNavigate.startsSelected = false;
+				targetHUD.Self.SetActive (false);
+			}
+			GameObject gameObject = null;
+			int num8 = 0;
+			int num9 = 4;
+			if (this.cursorType == BattleHUD.CursorGroup.Individual) {
+				gameObject = ButtonGroupState.ActiveButton;
+			}
+			for (BTL_DATA next3 = FF9StateSystem.Battle.FF9Battle.btl_list.next; next3 != null; next3 = next3.next) {
+				if (next3.btl_id != 0 && next3.bi.target != 0) {
+					if (next3.bi.player != 0) {
+						BattleHUD.TargetHUD targetHUD2 = this.targetHudList[num8];
+						GameObject self = targetHUD2.Self;
+						UILabel nameLabel = targetHUD2.NameLabel;
+						self.SetActive (true);
+						nameLabel.text = btl_util.getPlayerPtr (next3).name;
+						if (this.currentCharacterHp[num8] == BattleHUD.ParameterStatus.PARAMSTAT_EMPTY) {
+							if (this.cursorType == BattleHUD.CursorGroup.Individual) {
+								if (this.targetDead == 0) {
+									ButtonGroupState.SetButtonEnable (self, false);
+									if (self == gameObject) {
+										int firstPlayer = this.GetFirstPlayer ();
+										if (firstPlayer != -1) {
+											this.currentTargetIndex = firstPlayer;
+											gameObject = this.targetHudList[firstPlayer].Self;
+										} else {
+											global::Debug.LogError ("NO player active !!");
+										}
+										Singleton<PointerManager>.Instance.RemovePointerFromGameObject (self);
 									}
-									Singleton<PointerManager>.Instance.RemovePointerFromGameObject (self);
+								} else {
+									ButtonGroupState.SetButtonEnable (self, true);
 								}
-							} else {
+							}
+							nameLabel.color = FF9TextTool.Red;
+						} else if (this.currentCharacterHp[num8] == BattleHUD.ParameterStatus.PARAMSTAT_CRITICAL) {
+							if (this.cursorType == BattleHUD.CursorGroup.Individual) {
 								ButtonGroupState.SetButtonEnable (self, true);
 							}
+							nameLabel.color = FF9TextTool.Yellow;
+						} else {
+							if (this.cursorType == BattleHUD.CursorGroup.Individual) {
+								ButtonGroupState.SetButtonEnable (self, true);
+							}
+							nameLabel.color = FF9TextTool.White;
 						}
-						nameLabel.color = FF9TextTool.Red;
-					} else if (this.currentCharacterHp[num8] == BattleHUD.ParameterStatus.PARAMSTAT_CRITICAL) {
-						if (this.cursorType == BattleHUD.CursorGroup.Individual) {
-							ButtonGroupState.SetButtonEnable (self, true);
-						}
-						nameLabel.color = FF9TextTool.Yellow;
+						num8++;
 					} else {
-						if (this.cursorType == BattleHUD.CursorGroup.Individual) {
-							ButtonGroupState.SetButtonEnable (self, true);
-						}
-						nameLabel.color = FF9TextTool.White;
-					}
-					num8++;
-				} else {
-					BattleHUD.TargetHUD targetHUD3 = this.targetHudList[num9];
-					GameObject self2 = targetHUD3.Self;
-					UILabel nameLabel2 = targetHUD3.NameLabel;
-					float num10 = 0f;
-					self2.SetActive (true);
-					nameLabel2.text = nameLabel2.PhrasePreOpcodeSymbol (btl_util.getEnemyPtr (next3).et.name, ref num10);
-					if (this.currentEnemyDieState[num9 - 4]) {
-						if (this.cursorType == BattleHUD.CursorGroup.Individual) {
-							ButtonGroupState.SetButtonEnable (self2, false);
-							if (this.targetDead == 0) {
-								if (self2 == gameObject) {
-									int num11 = this.GetFirstEnemy () + HonoluluBattleMain.EnemyStartIndex;
-									if (num11 != -1) {
-										if (this.currentCommandIndex == BattleHUD.CommandMenu.Attack && FF9StateSystem.PCPlatform && this.enemyCount > 1) {
-											int num12 = (this.currentTargetIndex != num11) ? num11 : (num11 + 1);
-											num12 = ((num12 >= this.targetHudList.Count) ? num11 : num12);
-											this.ValidateDefaultTarget (ref num12);
-											num11 = num12;
+						BattleHUD.TargetHUD targetHUD3 = this.targetHudList[num9];
+						GameObject self2 = targetHUD3.Self;
+						UILabel nameLabel2 = targetHUD3.NameLabel;
+						float num10 = 0f;
+						self2.SetActive (true);
+						nameLabel2.text = nameLabel2.PhrasePreOpcodeSymbol (btl_util.getEnemyPtr (next3).et.name, ref num10);
+						if (this.currentEnemyDieState[num9 - 4]) {
+							if (this.cursorType == BattleHUD.CursorGroup.Individual) {
+								ButtonGroupState.SetButtonEnable (self2, false);
+								if (this.targetDead == 0) {
+									if (self2 == gameObject) {
+										int num11 = this.GetFirstEnemy () + HonoluluBattleMain.EnemyStartIndex;
+										if (num11 != -1) {
+											if (this.currentCommandIndex == BattleHUD.CommandMenu.Attack && FF9StateSystem.PCPlatform && this.enemyCount > 1) {
+												int num12 = (this.currentTargetIndex != num11) ? num11 : (num11 + 1);
+												num12 = ((num12 >= this.targetHudList.Count) ? num11 : num12);
+												this.ValidateDefaultTarget (ref num12);
+												num11 = num12;
+											}
+											this.currentTargetIndex = num11;
+											gameObject = this.targetHudList[num11].Self;
+										} else {
+											global::Debug.LogError ("NO enemy active !!");
 										}
-										this.currentTargetIndex = num11;
-										gameObject = this.targetHudList[num11].Self;
-									} else {
-										global::Debug.LogError ("NO enemy active !!");
+										Singleton<PointerManager>.Instance.RemovePointerFromGameObject (self2);
 									}
-									Singleton<PointerManager>.Instance.RemovePointerFromGameObject (self2);
+								} else {
+									ButtonGroupState.SetButtonEnable (self2, true);
 								}
-							} else {
+							}
+							nameLabel2.color = FF9TextTool.Gray;
+						} else {
+							if (this.cursorType == BattleHUD.CursorGroup.Individual) {
 								ButtonGroupState.SetButtonEnable (self2, true);
 							}
+							nameLabel2.color = FF9TextTool.White;
 						}
-						nameLabel2.color = FF9TextTool.Gray;
-					} else {
-						if (this.cursorType == BattleHUD.CursorGroup.Individual) {
-							ButtonGroupState.SetButtonEnable (self2, true);
-						}
-						nameLabel2.color = FF9TextTool.White;
+						num9++;
 					}
-					num9++;
 				}
 			}
-		}
-		if ((num != num3 || num2 != num4) && ButtonGroupState.ActiveGroup == BattleHUD.TargetGroupButton) {
-			this.SetTargetDefault ();
-			this.modelButtonManager.Reset ();
-			this.EnableTargetArea ();
-			this.SetTargetHelp ();
-			ButtonGroupState.DisableAllGroup (true);
-			ButtonGroupState.ActiveGroup = BattleHUD.TargetGroupButton;
-		}
-		if (gameObject != null && this.cursorType == BattleHUD.CursorGroup.Individual && gameObject.activeSelf) {
-			ButtonGroupState.ActiveButton = gameObject;
-		} else {
+			if ((num != num3 || num2 != num4) && ButtonGroupState.ActiveGroup == BattleHUD.TargetGroupButton) {
+				this.SetTargetDefault ();
+				this.modelButtonManager.Reset ();
+				this.EnableTargetArea ();
+				this.SetTargetHelp ();
+				ButtonGroupState.DisableAllGroup (true);
+				ButtonGroupState.ActiveGroup = BattleHUD.TargetGroupButton;
+			}
+			if (gameObject != null && this.cursorType == BattleHUD.CursorGroup.Individual && gameObject.activeSelf) {
+				ButtonGroupState.ActiveButton = gameObject;
+				return;
+			}
 			this.DisplayTargetPointer ();
 		}
 	}
@@ -1003,8 +1062,7 @@ public class BattleHUD : UIScene {
 			playerHud.HPLabel.color = FF9TextTool.White;
 			playerHud.NameLabel.color = FF9TextTool.White;
 		}
-		BattleHUD.ParameterStatus parameterStatus2 = this.CheckMPState (bd);
-		if (parameterStatus2 == BattleHUD.ParameterStatus.PARAMSTAT_CRITICAL) {
+		if (this.CheckMPState (bd) == BattleHUD.ParameterStatus.PARAMSTAT_CRITICAL) {
 			playerHud.MPLabel.color = FF9TextTool.Yellow;
 		} else {
 			playerHud.MPLabel.color = FF9TextTool.White;
@@ -1024,6 +1082,7 @@ public class BattleHUD : UIScene {
 					if (!this.currentTrancePlayer.Contains ((int) bd.bi.line_no)) {
 						this.currentTrancePlayer.Add ((int) bd.bi.line_no);
 						this.currentTranceTrigger = true;
+						return;
 					}
 				} else if (bd.trance != 255) {
 					playerHud.TranceBlink = false;
@@ -1039,40 +1098,43 @@ public class BattleHUD : UIScene {
 	public void AddPlayerToReady (int playerId) {
 		if (!this.unconsciousStateList.Contains (playerId)) {
 			this.readyQueue.Add (playerId);
-			BattleHUD.PlayerDetailHUD playerDetailHUD = this.playerDetailPanelList.First ((BattleHUD.PlayerDetailHUD hud) => hud.PlayerId == playerId);
-			playerDetailHUD.ATBBlink = true;
+			this.playerDetailPanelList.First ((BattleHUD.PlayerDetailHUD hud) => hud.PlayerId == playerId).ATBBlink = true;
 		}
 	}
 
 	public void RemovePlayerFromAction (int btl_id, bool isNeedToClearCommand) {
 		int num = 0;
-		while (1 << num != btl_id) {
-			num++;
-		}
-		if (this.inputFinishedList.Contains (num) && isNeedToClearCommand) {
-			this.inputFinishedList.Remove (num);
-		}
-		if (this.readyQueue.Contains (num) && isNeedToClearCommand) {
-			this.readyQueue.Remove (num);
+		checked {
+			while (1 << num != btl_id) {
+				num++;
+			}
+			if (this.inputFinishedList.Contains (num) && isNeedToClearCommand) {
+				this.inputFinishedList.Remove (num);
+			}
+			if (this.readyQueue.Contains (num) && isNeedToClearCommand) {
+				this.readyQueue.Remove (num);
+			}
 		}
 	}
 
 	private void ManageAbility () {
 		this.abilityDetailDict.Clear ();
-		for (BTL_DATA next = FF9StateSystem.Battle.FF9Battle.btl_list.next; next != null; next = next.next) {
-			int num = 0;
-			while (1 << num != (int) next.btl_id) {
-				num++;
-			}
-			if (next.bi.player != 0) {
-				BattleHUD.AbilityPlayerDetail abilityPlayerDetail = new BattleHUD.AbilityPlayerDetail ();
-				abilityPlayerDetail.Player = FF9StateSystem.Common.FF9.player[(int) next.bi.slot_no];
-				abilityPlayerDetail.HasAp = ff9abil.FF9Abil_HasAp (abilityPlayerDetail.Player);
-				this.SetAbilityAp (abilityPlayerDetail);
-				this.SetAbilityEquip (abilityPlayerDetail);
-				this.SetAbilityTrance (abilityPlayerDetail);
-				this.SetAbilityMagic (abilityPlayerDetail);
-				this.abilityDetailDict[num] = abilityPlayerDetail;
+		checked {
+			for (BTL_DATA next = FF9StateSystem.Battle.FF9Battle.btl_list.next; next != null; next = next.next) {
+				int num = 0;
+				while (1 << num != (int) next.btl_id) {
+					num++;
+				}
+				if (next.bi.player != 0) {
+					BattleHUD.AbilityPlayerDetail abilityPlayerDetail = new BattleHUD.AbilityPlayerDetail ();
+					abilityPlayerDetail.Player = FF9StateSystem.Common.FF9.player[(int) next.bi.slot_no];
+					abilityPlayerDetail.HasAp = ff9abil.FF9Abil_HasAp (abilityPlayerDetail.Player);
+					this.SetAbilityAp (abilityPlayerDetail);
+					this.SetAbilityEquip (abilityPlayerDetail);
+					this.SetAbilityTrance (abilityPlayerDetail);
+					this.SetAbilityMagic (abilityPlayerDetail);
+					this.abilityDetailDict[num] = abilityPlayerDetail;
+				}
 			}
 		}
 	}
@@ -1081,8 +1143,11 @@ public class BattleHUD : UIScene {
 		if (bd.cur.hp == 0) {
 			return BattleHUD.ParameterStatus.PARAMSTAT_EMPTY;
 		}
-		if ((float) bd.cur.hp <= (float) bd.max.hp / 6f) {
-			return (bd.bi.player == 0) ? BattleHUD.ParameterStatus.PARAMSTAT_NORMAL : BattleHUD.ParameterStatus.PARAMSTAT_CRITICAL;
+		if ((float) bd.cur.hp > (float) bd.max.hp / 6f) {
+			return BattleHUD.ParameterStatus.PARAMSTAT_NORMAL;
+		}
+		if (bd.bi.player != 0) {
+			return BattleHUD.ParameterStatus.PARAMSTAT_CRITICAL;
 		}
 		return BattleHUD.ParameterStatus.PARAMSTAT_NORMAL;
 	}
@@ -1098,30 +1163,36 @@ public class BattleHUD : UIScene {
 		if ((this.IsDoubleCast && this.doubleCastCount == 2) || !this.IsDoubleCast) {
 			this.doubleCastCount = 0;
 			this.SetTarget (battleIndex);
-		} else if (this.IsDoubleCast && this.doubleCastCount < 2) {
-			this.doubleCastCount += 1;
-			this.firstCommand = this.ProcessCommand (battleIndex, cursorType);
-			this.subMenuType = BattleHUD.SubMenuType.CommandAbility;
-			this.DisplayAbility ();
-			this.SetTargetVisibility (false);
-			this.SetAbilityPanelVisibility (true, true);
-			this.BackButton.SetActive (FF9StateSystem.MobilePlatform);
+			return;
+		}
+		checked {
+			if (this.IsDoubleCast && this.doubleCastCount < 2) {
+				this.doubleCastCount += 1;
+				this.firstCommand = this.ProcessCommand (battleIndex, cursorType);
+				this.subMenuType = BattleHUD.SubMenuType.CommandAbility;
+				this.DisplayAbility ();
+				this.SetTargetVisibility (false);
+				this.SetAbilityPanelVisibility (true, true);
+				this.BackButton.SetActive (FF9StateSystem.MobilePlatform);
+			}
 		}
 	}
 
 	private void CheckPlayerState () {
-		for (BTL_DATA next = FF9StateSystem.Battle.FF9Battle.btl_list.next; next != null; next = next.next) {
-			int num = 0;
-			while (1 << num != (int) next.btl_id) {
-				num++;
-			}
-			if (next.bi.player != 0) {
-				if (!this.IsEnableInput (next)) {
-					if (!this.unconsciousStateList.Contains (num)) {
-						this.unconsciousStateList.Add (num);
+		checked {
+			for (BTL_DATA next = FF9StateSystem.Battle.FF9Battle.btl_list.next; next != null; next = next.next) {
+				int num = 0;
+				while (1 << num != (int) next.btl_id) {
+					num++;
+				}
+				if (next.bi.player != 0) {
+					if (!this.IsEnableInput (next)) {
+						if (!this.unconsciousStateList.Contains (num)) {
+							this.unconsciousStateList.Add (num);
+						}
+					} else if (this.unconsciousStateList.Contains (num)) {
+						this.unconsciousStateList.Remove (num);
 					}
-				} else if (this.unconsciousStateList.Contains (num)) {
-					this.unconsciousStateList.Remove (num);
 				}
 			}
 		}
@@ -1151,89 +1222,91 @@ public class BattleHUD : UIScene {
 		} else {
 			alpha = 2f - this.blinkAlphaCounter;
 		}
-		if (this.commandEnable) {
-			foreach (BattleHUD.PlayerDetailHUD playerDetailHUD in this.playerDetailPanelList) {
-				if (playerDetailHUD.PlayerId != -1) {
-					BTL_DATA btl_DATA = FF9StateSystem.Battle.FF9Battle.btl_data[playerDetailHUD.PlayerId];
-					if ((Status.checkCurStat (btl_DATA, 1024u) || Status.checkCurStat (btl_DATA, 2048u)) && playerDetailHUD.ATBBlink) {
-						playerDetailHUD.ATBBlink = false;
+		checked {
+			if (this.commandEnable) {
+				foreach (BattleHUD.PlayerDetailHUD playerDetailHUD in this.playerDetailPanelList) {
+					if (playerDetailHUD.PlayerId != -1) {
+						BTL_DATA btl_DATA = FF9StateSystem.Battle.FF9Battle.btl_data[playerDetailHUD.PlayerId];
+						if ((Status.checkCurStat (btl_DATA, 1024u) || Status.checkCurStat (btl_DATA, 2048u)) && playerDetailHUD.ATBBlink) {
+							playerDetailHUD.ATBBlink = false;
+						}
+						if (this.IsEnableInput (btl_DATA) && !this.isAutoAttack) {
+							if (playerDetailHUD.ATBBlink) {
+								playerDetailHUD.ATBForegroundWidget.alpha = alpha;
+							}
+							if (playerDetailHUD.TranceBlink && btl_DATA.bi.t_gauge != 0) {
+								playerDetailHUD.TranceForegroundWidget.alpha = alpha;
+							}
+						} else {
+							if (playerDetailHUD.ATBBlink) {
+								playerDetailHUD.ATBForegroundWidget.alpha = 1f;
+								playerDetailHUD.ATBHighlightSprite.alpha = 0f;
+							}
+							if (playerDetailHUD.TranceBlink && btl_DATA.bi.t_gauge != 0) {
+								playerDetailHUD.TranceForegroundWidget.alpha = 1f;
+								playerDetailHUD.TranceHighlightSprite.alpha = 0f;
+							}
+						}
 					}
-					if (this.IsEnableInput (btl_DATA) && !this.isAutoAttack) {
-						if (playerDetailHUD.ATBBlink) {
-							playerDetailHUD.ATBForegroundWidget.alpha = alpha;
-						}
-						if (playerDetailHUD.TranceBlink && btl_DATA.bi.t_gauge != 0) {
-							playerDetailHUD.TranceForegroundWidget.alpha = alpha;
-						}
-					} else {
-						if (playerDetailHUD.ATBBlink) {
-							playerDetailHUD.ATBForegroundWidget.alpha = 1f;
-							playerDetailHUD.ATBHighlightSprite.alpha = 0f;
-						}
-						if (playerDetailHUD.TranceBlink && btl_DATA.bi.t_gauge != 0) {
-							playerDetailHUD.TranceForegroundWidget.alpha = 1f;
-							playerDetailHUD.TranceHighlightSprite.alpha = 0f;
-						}
-					}
 				}
-			}
-			this.YMenu_ManagerHpMp ();
-			this.CheckPlayerState ();
-			this.DisplayPartyRealtime ();
-			if (this.TargetPanel.activeSelf) {
-				this.DisplayTarget ();
-				this.DisplayStatusRealtime ();
-			}
-			this.ManagerTarget ();
-			this.ManagerInfo ();
-			if (this.currentPlayerId > -1) {
-				BTL_DATA btl_DATA2 = FF9StateSystem.Battle.FF9Battle.btl_data[this.currentPlayerId];
-				if (ButtonGroupState.ActiveGroup == BattleHUD.CommandGroupButton && this.isTranceMenu) {
-					this.tranceColorCounter = (this.tranceColorCounter + 1) % this.tranceTextColor.Length;
-					this.CommandCaptionLabel.color = this.tranceTextColor[this.tranceColorCounter];
-				}
-				if (!this.IsEnableInput (btl_DATA2)) {
-					this.SetIdle ();
-					return;
-				}
+				this.YMenu_ManagerHpMp ();
+				this.CheckPlayerState ();
+				this.DisplayPartyRealtime ();
 				if (this.TargetPanel.activeSelf) {
-					if (!this.ManageTargetCommand ()) {
+					this.DisplayTarget ();
+					this.DisplayStatusRealtime ();
+				}
+				this.ManagerTarget ();
+				this.ManagerInfo ();
+				if (this.currentPlayerId > -1) {
+					BTL_DATA btl_DATA2 = FF9StateSystem.Battle.FF9Battle.btl_data[this.currentPlayerId];
+					if (ButtonGroupState.ActiveGroup == BattleHUD.CommandGroupButton && this.isTranceMenu) {
+						this.tranceColorCounter = (this.tranceColorCounter + 1) % this.tranceTextColor.Length;
+						this.CommandCaptionLabel.color = this.tranceTextColor[this.tranceColorCounter];
+					}
+					if (!this.IsEnableInput (btl_DATA2)) {
+						this.SetIdle ();
 						return;
 					}
-				} else if (this.AbilityPanel.activeSelf || this.ItemPanel.activeSelf) {
-					if (this.AbilityPanel.activeSelf) {
-						this.DisplayAbilityRealTime ();
-					}
-					if (this.ItemPanel.activeSelf) {
-						this.DisplayItemRealTime ();
-					}
-					if (this.currentCommandId == 31u && (!this.magicSwordCond.IsViviExist || this.magicSwordCond.IsViviDead || this.magicSwordCond.IsSteinerMini)) {
-						FF9Sfx.FF9SFX_Play (101);
-						this.ResetToReady ();
-						return;
-					}
-					if (!this.isTranceMenu && btl_stat.CheckStatus (btl_DATA2, 16384u)) {
-						FF9Sfx.FF9SFX_Play (101);
-						this.ResetToReady ();
-						return;
+					if (this.TargetPanel.activeSelf) {
+						if (!this.ManageTargetCommand ()) {
+							return;
+						}
+					} else if (this.AbilityPanel.activeSelf || this.ItemPanel.activeSelf) {
+						if (this.AbilityPanel.activeSelf) {
+							this.DisplayAbilityRealTime ();
+						}
+						if (this.ItemPanel.activeSelf) {
+							this.DisplayItemRealTime ();
+						}
+						if (this.currentCommandId == 31u && (!this.magicSwordCond.IsViviExist || this.magicSwordCond.IsViviDead || this.magicSwordCond.IsSteinerMini)) {
+							FF9Sfx.FF9SFX_Play (101);
+							this.ResetToReady ();
+							return;
+						}
+						if (!this.isTranceMenu && btl_stat.CheckStatus (btl_DATA2, 16384u)) {
+							FF9Sfx.FF9SFX_Play (101);
+							this.ResetToReady ();
+							return;
+						}
 					}
 				}
-			}
-			if (this.readyQueue.Count > 0 && this.currentPlayerId == -1) {
-				for (int i = this.readyQueue.Count - 1; i >= 0; i--) {
-					if (this.unconsciousStateList.Contains (this.readyQueue[i])) {
-						BTL_DATA btl_DATA3 = FF9StateSystem.Battle.FF9Battle.btl_data[this.readyQueue[i]];
-						this.RemovePlayerFromAction ((int) btl_DATA3.btl_id, btl_stat.CheckStatus (btl_DATA3, 134403u));
+				if (this.readyQueue.Count > 0 && this.currentPlayerId == -1) {
+					for (int i = this.readyQueue.Count - 1; i >= 0; i--) {
+						if (this.unconsciousStateList.Contains (this.readyQueue[i])) {
+							BTL_DATA btl_DATA3 = FF9StateSystem.Battle.FF9Battle.btl_data[this.readyQueue[i]];
+							this.RemovePlayerFromAction ((int) btl_DATA3.btl_id, btl_stat.CheckStatus (btl_DATA3, 134403u));
+						}
 					}
-				}
-				foreach (int num in this.readyQueue) {
-					if (!this.inputFinishedList.Contains (num) && !this.unconsciousStateList.Contains (num)) {
-						if (this.isAutoAttack) {
-							this.SendAutoAttackCommand (num);
+					foreach (int num in this.readyQueue) {
+						if (!this.inputFinishedList.Contains (num) && !this.unconsciousStateList.Contains (num)) {
+							if (this.isAutoAttack) {
+								this.SendAutoAttackCommand (num);
+								break;
+							}
+							this.SwitchPlayer (num);
 							break;
 						}
-						this.SwitchPlayer (num);
-						break;
 					}
 				}
 			}
@@ -1241,8 +1314,7 @@ public class BattleHUD : UIScene {
 	}
 
 	private BattleHUD.AbilityStatus CheckAbilityStatus (int subMenuIndex) {
-		rdata.FF9COMMAND ff9COMMAND = rdata._FF9FAbil_ComData[(int) ((UIntPtr) this.currentCommandId)];
-		int num = (int) ff9COMMAND.ability + subMenuIndex;
+		int num = checked ((int) rdata._FF9FAbil_ComData[(int) ((uint) ((UIntPtr) this.currentCommandId))].ability + subMenuIndex);
 		int abilId = rdata._FF9BMenu_ComAbil[num];
 		return this.GetAbilityState (abilId);
 	}
@@ -1250,54 +1322,56 @@ public class BattleHUD : UIScene {
 	public void YMenu_ManagerHpMp () {
 		BTL_DATA next = FF9StateSystem.Battle.FF9Battle.btl_list.next;
 		int num = 0;
-		while (next != null) {
-			if (next.bi.player != 0) {
-				BattleHUD.InfoVal infoVal = this.hpInfoVal[num];
-				BattleHUD.InfoVal infoVal2 = this.mpInfoVal[num];
-				for (int i = 0; i < 2; i++) {
-					BattleHUD.InfoVal infoVal3 = (i != 0) ? infoVal2 : infoVal;
-					if (infoVal3.anim_frm != 0) {
-						if (0 <= infoVal3.inc_val) {
-							if (infoVal3.disp_val + infoVal3.inc_val >= infoVal3.req_val) {
+		checked {
+			while (next != null) {
+				if (next.bi.player != 0) {
+					BattleHUD.InfoVal infoVal = this.hpInfoVal[num];
+					BattleHUD.InfoVal infoVal2 = this.mpInfoVal[num];
+					for (int i = 0; i < 2; i++) {
+						BattleHUD.InfoVal infoVal3 = (i != 0) ? infoVal2 : infoVal;
+						if (infoVal3.anim_frm != 0) {
+							if (0 <= infoVal3.inc_val) {
+								if (infoVal3.disp_val + infoVal3.inc_val >= infoVal3.req_val) {
+									infoVal3.disp_val = infoVal3.req_val;
+									infoVal3.anim_frm = 0;
+								} else {
+									infoVal3.disp_val += infoVal3.inc_val;
+									infoVal3.anim_frm--;
+								}
+							} else if (infoVal3.disp_val + infoVal3.inc_val <= infoVal3.req_val) {
 								infoVal3.disp_val = infoVal3.req_val;
 								infoVal3.anim_frm = 0;
 							} else {
 								infoVal3.disp_val += infoVal3.inc_val;
 								infoVal3.anim_frm--;
 							}
-						} else if (infoVal3.disp_val + infoVal3.inc_val <= infoVal3.req_val) {
-							infoVal3.disp_val = infoVal3.req_val;
-							infoVal3.anim_frm = 0;
 						} else {
-							infoVal3.disp_val += infoVal3.inc_val;
-							infoVal3.anim_frm--;
-						}
-					} else {
-						int num2 = (int) ((i != 0) ? next.cur.mp : ((short) next.cur.hp));
-						int num3 = (int) ((i != 0) ? next.max.mp : ((short) next.max.hp));
-						int num4;
-						if ((num4 = num2 - infoVal3.disp_val) != 0) {
-							int num5 = Mathf.Abs (num4);
-							infoVal3.req_val = (int) ((short) num2);
-							if (num5 < BattleHUD.YINFO_ANIM_HPMP_MIN) {
-								infoVal3.anim_frm = num5;
-							} else {
-								infoVal3.anim_frm = num5 * BattleHUD.YINFO_ANIM_HPMP_MAX / num3;
-								if (BattleHUD.YINFO_ANIM_HPMP_MIN > infoVal3.anim_frm) {
-									infoVal3.anim_frm = BattleHUD.YINFO_ANIM_HPMP_MIN;
+							int num2 = (int) ((i != 0) ? next.cur.mp : ((short) next.cur.hp));
+							int num3 = (int) ((i != 0) ? next.max.mp : ((short) next.max.hp));
+							int num4;
+							if ((num4 = num2 - infoVal3.disp_val) != 0) {
+								int num5 = Mathf.Abs (num4);
+								infoVal3.req_val = (int) ((short) num2);
+								if (num5 < BattleHUD.YINFO_ANIM_HPMP_MIN) {
+									infoVal3.anim_frm = num5;
+								} else {
+									infoVal3.anim_frm = num5 * BattleHUD.YINFO_ANIM_HPMP_MAX / num3;
+									if (BattleHUD.YINFO_ANIM_HPMP_MIN > infoVal3.anim_frm) {
+										infoVal3.anim_frm = BattleHUD.YINFO_ANIM_HPMP_MIN;
+									}
 								}
-							}
-							if (0 <= num4) {
-								infoVal3.inc_val = (num4 + (infoVal3.anim_frm - 1)) / infoVal3.anim_frm;
-							} else {
-								infoVal3.inc_val = (num4 - (infoVal3.anim_frm - 1)) / infoVal3.anim_frm;
+								if (0 <= num4) {
+									infoVal3.inc_val = (num4 + (infoVal3.anim_frm - 1)) / infoVal3.anim_frm;
+								} else {
+									infoVal3.inc_val = (num4 - (infoVal3.anim_frm - 1)) / infoVal3.anim_frm;
+								}
 							}
 						}
 					}
+					num++;
 				}
-				num++;
+				next = next.next;
 			}
-			next = next.next;
 		}
 	}
 
@@ -1308,10 +1382,7 @@ public class BattleHUD : UIScene {
 		magicSwordCondition.IsViviExist = this.magicSwordCond.IsViviExist;
 		magicSwordCondition.IsViviDead = this.magicSwordCond.IsViviDead;
 		magicSwordCondition.IsSteinerMini = this.magicSwordCond.IsSteinerMini;
-		while (next != null) {
-			if (next.bi.player == 0) {
-				break;
-			}
+		while (next != null && next.bi.player != 0) {
 			if (next.bi.slot_no == 1) {
 				magicSwordCondition2.IsViviExist = true;
 				if (next.cur.hp == 0) {
@@ -1334,12 +1405,10 @@ public class BattleHUD : UIScene {
 			this.magicSwordCond.IsSteinerMini = magicSwordCondition2.IsSteinerMini;
 			if (this.currentPlayerId != -1) {
 				this.DisplayCommand ();
+				return;
 			}
-		} else if (!this.isTranceMenu && this.currentPlayerId != -1) {
-			BTL_DATA btl = FF9StateSystem.Battle.FF9Battle.btl_data[this.currentPlayerId];
-			if (btl_stat.CheckStatus (btl, 16384u)) {
-				this.DisplayCommand ();
-			}
+		} else if (!this.isTranceMenu && this.currentPlayerId != -1 && btl_stat.CheckStatus (FF9StateSystem.Battle.FF9Battle.btl_data[this.currentPlayerId], 16384u)) {
+			this.DisplayCommand ();
 		}
 	}
 
@@ -1355,31 +1424,30 @@ public class BattleHUD : UIScene {
 			this.ResetToReady ();
 			return false;
 		}
-		if (this.subMenuType == BattleHUD.SubMenuType.CommandAbility) {
-			int num = (int) rdata._FF9FAbil_ComData[(int) ((UIntPtr) this.currentCommandId)].ability;
-			int num2 = this.PatchAbility (rdata._FF9BMenu_ComAbil[num + this.currentSubMenuIndex]);
-			AA_DATA aa_DATA = FF9StateSystem.Battle.FF9Battle.aa_data[num2];
-			int num3 = ff9abil.FF9Abil_GetEnableSA ((int) btl_DATA.bi.slot_no, BattleHUD.AbilSaMpHalf) ? (aa_DATA.MP >> 1) : ((int) aa_DATA.MP);
-			if ((int) btl_DATA.cur.mp < num3) {
-				FF9Sfx.FF9SFX_Play (101);
-				this.DisplayAbility ();
-				this.SetTargetVisibility (false);
-				this.ClearModelPointer ();
-				this.SetAbilityPanelVisibility (true, true);
-				return false;
+		checked {
+			if (this.subMenuType == BattleHUD.SubMenuType.CommandAbility) {
+				int num = (int) rdata._FF9FAbil_ComData[(int) ((uint) ((UIntPtr) this.currentCommandId))].ability;
+				int num2 = this.PatchAbility (rdata._FF9BMenu_ComAbil[num + this.currentSubMenuIndex]);
+				AA_DATA aa_DATA = FF9StateSystem.Battle.FF9Battle.aa_data[num2];
+				int num3 = ff9abil.FF9Abil_GetEnableSA ((int) btl_DATA.bi.slot_no, BattleHUD.AbilSaMpHalf) ? (aa_DATA.MP >> 1) : ((int) aa_DATA.MP);
+				if ((int) btl_DATA.cur.mp < num3) {
+					FF9Sfx.FF9SFX_Play (101);
+					this.DisplayAbility ();
+					this.SetTargetVisibility (false);
+					this.ClearModelPointer ();
+					this.SetAbilityPanelVisibility (true, true);
+					return false;
+				}
+				if ((aa_DATA.Category & 2) != 0 && btl_stat.CheckStatus (btl_DATA, 8u)) {
+					FF9Sfx.FF9SFX_Play (101);
+					this.DisplayAbility ();
+					this.SetTargetVisibility (false);
+					this.ClearModelPointer ();
+					this.SetAbilityPanelVisibility (true, true);
+					return false;
+				}
 			}
-			if ((aa_DATA.Category & 2) != 0 && btl_stat.CheckStatus (btl_DATA, 8u)) {
-				FF9Sfx.FF9SFX_Play (101);
-				this.DisplayAbility ();
-				this.SetTargetVisibility (false);
-				this.ClearModelPointer ();
-				this.SetAbilityPanelVisibility (true, true);
-				return false;
-			}
-		}
-		if (this.subMenuType == BattleHUD.SubMenuType.CommandItem || this.subMenuType == BattleHUD.SubMenuType.CommandThrow) {
-			int id = this.itemIdList[this.currentSubMenuIndex];
-			if (ff9item.FF9Item_GetCount (id) == 0) {
+			if ((this.subMenuType == BattleHUD.SubMenuType.CommandItem || this.subMenuType == BattleHUD.SubMenuType.CommandThrow) && ff9item.FF9Item_GetCount (this.itemIdList[this.currentSubMenuIndex]) == 0) {
 				FF9Sfx.FF9SFX_Play (101);
 				this.DisplayItem (BattleHUD.SubMenuType.CommandThrow == this.subMenuType);
 				this.SetTargetVisibility (false);
@@ -1387,8 +1455,8 @@ public class BattleHUD : UIScene {
 				this.SetItemPanelVisibility (true, true);
 				return false;
 			}
+			return true;
 		}
-		return true;
 	}
 
 	private void ManagerTarget () {
@@ -1411,7 +1479,7 @@ public class BattleHUD : UIScene {
 		for (BTL_DATA next = FF9StateSystem.Battle.FF9Battle.btl_list.next; next != null; next = next.next) {
 			BattleHUD.InfoVal infoVal = new BattleHUD.InfoVal ();
 			BattleHUD.InfoVal infoVal2 = new BattleHUD.InfoVal ();
-			infoVal.req_val = (infoVal.disp_val = (int) ((short) next.cur.hp));
+			infoVal.req_val = (infoVal.disp_val = (int) (checked ((short) next.cur.hp)));
 			infoVal2.req_val = (infoVal2.disp_val = (int) next.cur.mp);
 			infoVal.anim_frm = (infoVal2.anim_frm = 0);
 			infoVal.inc_val = (infoVal2.inc_val = 0);
@@ -1441,17 +1509,16 @@ public class BattleHUD : UIScene {
 			if (!abilityPlayerDetail.AbilityPaList.ContainsKey (abilId)) {
 				return BattleHUD.AbilityStatus.ABILSTAT_NONE;
 			}
-			int num = abilityPlayerDetail.AbilityPaList[abilId];
+			int num3 = abilityPlayerDetail.AbilityPaList[abilId];
 			int num2 = abilityPlayerDetail.AbilityMaxPaList[abilId];
-			if (num < num2) {
+			if (num3 < num2) {
 				return BattleHUD.AbilityStatus.ABILSTAT_NONE;
 			}
 		}
 		if ((aa_DATA.Category & 2) != 0 && (btl_stat.CheckStatus (btl_DATA, 8u) || FF9StateSystem.Battle.FF9Battle.btl_scene.Info.NoMagical != 0)) {
 			return BattleHUD.AbilityStatus.ABILSTAT_DISABLE;
 		}
-		int mp = this.GetMp (aa_DATA);
-		if (mp > (int) btl_DATA.cur.mp) {
+		if (this.GetMp (aa_DATA) > (int) btl_DATA.cur.mp) {
 			return BattleHUD.AbilityStatus.ABILSTAT_DISABLE;
 		}
 		return BattleHUD.AbilityStatus.ABILSTAT_ENABLE;
@@ -1459,13 +1526,15 @@ public class BattleHUD : UIScene {
 
 	private void SetAbilityAp (BattleHUD.AbilityPlayerDetail abilityPlayer) {
 		PLAYER player = abilityPlayer.Player;
-		if (abilityPlayer.HasAp) {
-			PA_DATA[] array = ff9abil._FF9Abil_PaData[(int) player.info.menu_type];
-			for (int i = 0; i < 192; i++) {
-				int num;
-				if (0 <= (num = ff9abil.FF9Abil_GetIndex ((int) player.info.slot_no, i))) {
-					abilityPlayer.AbilityPaList[i] = (int) player.pa[num];
-					abilityPlayer.AbilityMaxPaList[i] = (int) array[num].max_ap;
+		checked {
+			if (abilityPlayer.HasAp) {
+				PA_DATA[] array = ff9abil._FF9Abil_PaData[(int) player.info.menu_type];
+				for (int i = 0; i < 192; i++) {
+					int num;
+					if (0 <= (num = ff9abil.FF9Abil_GetIndex ((int) player.info.slot_no, i))) {
+						abilityPlayer.AbilityPaList[i] = (int) player.pa[num];
+						abilityPlayer.AbilityMaxPaList[i] = (int) array[num].max_ap;
+					}
 				}
 			}
 		}
@@ -1473,14 +1542,16 @@ public class BattleHUD : UIScene {
 
 	private void SetAbilityEquip (BattleHUD.AbilityPlayerDetail abilityPlayer) {
 		PLAYER player = abilityPlayer.Player;
-		for (int i = 0; i < 5; i++) {
-			int num = (int) player.equip[i];
-			if (num != 255) {
-				FF9ITEM_DATA ff9ITEM_DATA = ff9item._FF9Item_Data[num];
-				for (int j = 0; j < 3; j++) {
-					int num2 = (int) ff9ITEM_DATA.ability[j];
-					if (num2 != 0 && 192 > num2) {
-						abilityPlayer.AbilityEquipList[num2] = true;
+		checked {
+			for (int i = 0; i < 5; i++) {
+				int num = (int) player.equip[i];
+				if (num != 255) {
+					FF9ITEM_DATA ff9ITEM_DATA = ff9item._FF9Item_Data[num];
+					for (int j = 0; j < 3; j++) {
+						int num2 = (int) ff9ITEM_DATA.ability[j];
+						if (num2 != 0 && 192 > num2) {
+							abilityPlayer.AbilityEquipList[num2] = true;
+						}
 					}
 				}
 			}
@@ -1496,18 +1567,20 @@ public class BattleHUD : UIScene {
 		if (rdata._FF9BMenu_MenuTrance[menu_type, 2] != 1 && rdata._FF9BMenu_MenuTrance[menu_type, 2] != 2) {
 			return;
 		}
-		int num = (int) (rdata._FF9BMenu_MenuTrance[menu_type, 2] - 1);
-		rdata.FF9COMMAND ff9COMMAND = rdata._FF9BMenu_ComData[(int) rdata._FF9BMenu_MenuNormal[menu_type, num]];
-		rdata.FF9COMMAND ff9COMMAND2 = rdata._FF9BMenu_ComData[(int) rdata._FF9BMenu_MenuTrance[menu_type, num]];
-		PA_DATA[] array = ff9abil._FF9Abil_PaData[menu_type];
-		for (int i = 0; i < (int) ff9COMMAND.count; i++) {
-			int num2 = rdata._FF9BMenu_ComAbil[(int) ff9COMMAND.ability + i];
-			int num3 = rdata._FF9BMenu_ComAbil[(int) ff9COMMAND2.ability + i];
-			if (num2 != num3) {
-				abilityPlayer.AbilityPaList[num3] = abilityPlayer.AbilityPaList[num2];
-				abilityPlayer.AbilityMaxPaList[num3] = abilityPlayer.AbilityMaxPaList[num2];
-				if (abilityPlayer.AbilityEquipList.ContainsKey (num2)) {
-					abilityPlayer.AbilityEquipList[num3] = abilityPlayer.AbilityEquipList[num2];
+		checked {
+			int num = (int) (rdata._FF9BMenu_MenuTrance[menu_type, 2] - 1);
+			rdata.FF9COMMAND ff9COMMAND = rdata._FF9BMenu_ComData[(int) rdata._FF9BMenu_MenuNormal[menu_type, num]];
+			rdata.FF9COMMAND ff9COMMAND2 = rdata._FF9BMenu_ComData[(int) rdata._FF9BMenu_MenuTrance[menu_type, num]];
+			PA_DATA[] array = ff9abil._FF9Abil_PaData[menu_type];
+			for (int i = 0; i < (int) ff9COMMAND.count; i++) {
+				int num2 = rdata._FF9BMenu_ComAbil[(int) ff9COMMAND.ability + i];
+				int num3 = rdata._FF9BMenu_ComAbil[(int) ff9COMMAND2.ability + i];
+				if (num2 != num3) {
+					abilityPlayer.AbilityPaList[num3] = abilityPlayer.AbilityPaList[num2];
+					abilityPlayer.AbilityMaxPaList[num3] = abilityPlayer.AbilityMaxPaList[num2];
+					if (abilityPlayer.AbilityEquipList.ContainsKey (num2)) {
+						abilityPlayer.AbilityEquipList[num3] = abilityPlayer.AbilityEquipList[num2];
+					}
 				}
 			}
 		}
@@ -1536,25 +1609,27 @@ public class BattleHUD : UIScene {
 		if (player.info.slot_no != 3) {
 			return;
 		}
-		for (int i = 0; i < (int) ff9COMMAND.count; i++) {
-			int key = rdata._FF9FAbil_ComAbil[(int) ff9COMMAND.ability + i];
-			int num;
-			if (0 <= (num = ff9abil.FF9Abil_GetIndex (1, array2[i]))) {
-				abilityPlayer.AbilityPaList[key] = (int) player2.pa[num];
-				abilityPlayer.AbilityMaxPaList[key] = (int) array[num].max_ap;
+		checked {
+			for (int i = 0; i < (int) ff9COMMAND.count; i++) {
+				int key = rdata._FF9FAbil_ComAbil[(int) ff9COMMAND.ability + i];
+				int num;
+				if (0 <= (num = ff9abil.FF9Abil_GetIndex (1, array2[i]))) {
+					abilityPlayer.AbilityPaList[key] = (int) player2.pa[num];
+					abilityPlayer.AbilityMaxPaList[key] = (int) array[num].max_ap;
+				}
 			}
-		}
-		for (int i = 0; i < 5; i++) {
-			int num2 = (int) player2.equip[i];
-			if (num2 != 255) {
-				FF9ITEM_DATA ff9ITEM_DATA = ff9item._FF9Item_Data[num2];
-				for (int j = 0; j < 3; j++) {
-					int num3 = (int) ff9ITEM_DATA.ability[j];
-					if (num3 != 0 && 192 > num3) {
-						for (int k = 0; k < (int) ff9COMMAND.count; k++) {
-							if (num3 == array2[k]) {
-								int key = rdata._FF9FAbil_ComAbil[(int) ff9COMMAND.ability + k];
-								abilityPlayer.AbilityEquipList[key] = true;
+			for (int j = 0; j < 5; j++) {
+				int num2 = (int) player2.equip[j];
+				if (num2 != 255) {
+					FF9ITEM_DATA ff9ITEM_DATA = ff9item._FF9Item_Data[num2];
+					for (int k = 0; k < 3; k++) {
+						int num3 = (int) ff9ITEM_DATA.ability[k];
+						if (num3 != 0 && 192 > num3) {
+							for (int l = 0; l < (int) ff9COMMAND.count; l++) {
+								if (num3 == array2[l]) {
+									int key2 = rdata._FF9FAbil_ComAbil[(int) ff9COMMAND.ability + l];
+									abilityPlayer.AbilityEquipList[key2] = true;
+								}
 							}
 						}
 					}
@@ -1622,12 +1697,10 @@ public class BattleHUD : UIScene {
 			ButtonGroupState.SetPointerLimitRectToGroup (this.AbilityPanel.GetComponent<UIWidget> (), this.abilityScrollList.cellHeight, BattleHUD.AbilityGroupButton);
 			ButtonGroupState.SetPointerLimitRectToGroup (this.ItemPanel.GetComponent<UIWidget> (), this.itemScrollList.cellHeight, BattleHUD.ItemGroupButton);
 		};
-		bool flag = afterFinished != null;
-		if (flag) {
+		if (afterFinished != null) {
 			sceneVoidDelegate = (UIScene.SceneVoidDelegate) Delegate.Combine (sceneVoidDelegate, afterFinished);
 		}
-		bool flag2 = !this.isFromPause;
-		if (flag2) {
+		if (!this.isFromPause) {
 			base.Show (sceneVoidDelegate);
 			PersistenSingleton<UIManager>.Instance.Booster.SetBoosterState (PersistenSingleton<UIManager>.Instance.UnityScene);
 			FF9StateSystem.Settings.SetMasterSkill ();
@@ -1637,8 +1710,7 @@ public class BattleHUD : UIScene {
 			this.isTryingToRun = false;
 			Singleton<HUDMessage>.Instance.Pause (false);
 			base.Show (sceneVoidDelegate);
-			bool flag3 = this.commandEnable && !this.hidingHud;
-			if (flag3) {
+			if (this.commandEnable && !this.hidingHud) {
 				this.abilityScrollList.Invoke ("RepositionList", 0.1f);
 				this.itemScrollList.Invoke ("RepositionList", 0.1f);
 				this.FF9BMenu_EnableMenu (true);
@@ -1671,112 +1743,113 @@ public class BattleHUD : UIScene {
 	}
 
 	public override bool OnKeyConfirm (GameObject go) {
-		if (base.OnKeyConfirm (go) && !this.hidingHud) {
-			if (ButtonGroupState.ActiveGroup == BattleHUD.CommandGroupButton) {
-				FF9Sfx.FF9SFX_Play (103);
-				int siblingIndex = go.transform.GetSiblingIndex ();
-				this.currentCommandIndex = (BattleHUD.CommandMenu) siblingIndex;
-				this.currentCommandId = (uint) this.GetCommandFromCommandIndex (this.currentCommandIndex, this.currentPlayerId);
-				this.commandCursorMemorize[this.currentPlayerId] = this.currentCommandIndex;
-				this.subMenuType = BattleHUD.SubMenuType.CommandNormal;
-				if (this.IsDoubleCast && this.doubleCastCount < 2) {
-					this.doubleCastCount += 1;
-				}
-				switch (this.currentCommandIndex) {
-					case BattleHUD.CommandMenu.Attack:
-						this.SetCommandVisibility (false, false);
-						this.SetTargetVisibility (true);
-						break;
-					case BattleHUD.CommandMenu.Defend:
-						this.targetCursor = 0;
-						this.SendCommand (this.ProcessCommand (this.currentPlayerId, BattleHUD.CursorGroup.Individual));
-						this.SetIdle ();
-						break;
-					case BattleHUD.CommandMenu.Ability1:
-					case BattleHUD.CommandMenu.Ability2:
-						{
-							int num = (this.currentCommandIndex != BattleHUD.CommandMenu.Ability2) ? 0 : 1;
-							rdata.FF9COMMAND ff9COMMAND = rdata._FF9FAbil_ComData[(int) ((UIntPtr) this.currentCommandId)];
-							if (ff9COMMAND.type == 0) {
-								this.subMenuType = BattleHUD.SubMenuType.CommandNormal;
-								this.SetCommandVisibility (false, false);
-								this.SetTargetVisibility (true);
-							} else if (ff9COMMAND.type == 1) {
-								this.subMenuType = BattleHUD.SubMenuType.CommandAbility;
-								this.DisplayAbility ();
-								this.SetCommandVisibility (false, false);
-								this.SetAbilityPanelVisibility (true, false);
-							} else if (ff9COMMAND.type == 3) {
-								this.subMenuType = BattleHUD.SubMenuType.CommandThrow;
-								this.DisplayItem (true);
-								this.SetCommandVisibility (false, false);
-								this.SetItemPanelVisibility (true, false);
-							}
+		checked {
+			if (base.OnKeyConfirm (go) && !this.hidingHud) {
+				if (ButtonGroupState.ActiveGroup == BattleHUD.CommandGroupButton) {
+					FF9Sfx.FF9SFX_Play (103);
+					int siblingIndex = go.transform.GetSiblingIndex ();
+					this.currentCommandIndex = (BattleHUD.CommandMenu) siblingIndex;
+					this.currentCommandId = (uint) this.GetCommandFromCommandIndex (this.currentCommandIndex, this.currentPlayerId);
+					this.commandCursorMemorize[this.currentPlayerId] = this.currentCommandIndex;
+					this.subMenuType = BattleHUD.SubMenuType.CommandNormal;
+					if (this.IsDoubleCast && this.doubleCastCount < 2) {
+						this.doubleCastCount += 1;
+					}
+					switch (this.currentCommandIndex) {
+						case BattleHUD.CommandMenu.Attack:
+							this.SetCommandVisibility (false, false);
+							this.SetTargetVisibility (true);
 							break;
-						}
-					case BattleHUD.CommandMenu.Item:
-						this.DisplayItem (false);
-						this.SetCommandVisibility (false, false);
-						this.SetItemPanelVisibility (true, false);
-						break;
-					case BattleHUD.CommandMenu.Change:
-						this.targetCursor = 0;
-						this.SendCommand (this.ProcessCommand (this.currentPlayerId, BattleHUD.CursorGroup.Individual));
-						this.SetIdle ();
-						break;
-				}
-			} else if (ButtonGroupState.ActiveGroup == BattleHUD.TargetGroupButton) {
-				FF9Sfx.FF9SFX_Play (103);
-				if (this.cursorType == BattleHUD.CursorGroup.Individual) {
-					int num2 = this.targetHudList.IndexOf (this.targetHudList.Single ((BattleHUD.TargetHUD hud) => hud.Self == go));
-					if (num2 < HonoluluBattleMain.EnemyStartIndex) {
-						if (num2 < this.matchBattleIdPlayerList.Count) {
-							int battleIndex = this.matchBattleIdPlayerList[num2];
-							this.CheckDoubleCast (battleIndex, this.cursorType);
-						}
-					} else if (num2 - HonoluluBattleMain.EnemyStartIndex < this.matchBattleIdEnemyList.Count) {
-						int battleIndex = this.matchBattleIdEnemyList[num2 - HonoluluBattleMain.EnemyStartIndex];
-						this.CheckDoubleCast (battleIndex, this.cursorType);
+						case BattleHUD.CommandMenu.Defend:
+							this.targetCursor = 0;
+							this.SendCommand (this.ProcessCommand (this.currentPlayerId, BattleHUD.CursorGroup.Individual));
+							this.SetIdle ();
+							break;
+						case BattleHUD.CommandMenu.Ability1:
+						case BattleHUD.CommandMenu.Ability2:
+							{
+								BattleHUD.CommandMenu commandMenu = this.currentCommandIndex;
+								rdata.FF9COMMAND ff9COMMAND = rdata._FF9FAbil_ComData[(int) ((uint) ((UIntPtr) this.currentCommandId))];
+								if (ff9COMMAND.type == 0) {
+									this.subMenuType = BattleHUD.SubMenuType.CommandNormal;
+									this.SetCommandVisibility (false, false);
+									this.SetTargetVisibility (true);
+								} else if (ff9COMMAND.type == 1) {
+									this.subMenuType = BattleHUD.SubMenuType.CommandAbility;
+									this.DisplayAbility ();
+									this.SetCommandVisibility (false, false);
+									this.SetAbilityPanelVisibility (true, false);
+								} else if (ff9COMMAND.type == 3) {
+									this.subMenuType = BattleHUD.SubMenuType.CommandThrow;
+									this.DisplayItem (true);
+									this.SetCommandVisibility (false, false);
+									this.SetItemPanelVisibility (true, false);
+								}
+								break;
+							}
+						case BattleHUD.CommandMenu.Item:
+							this.DisplayItem (false);
+							this.SetCommandVisibility (false, false);
+							this.SetItemPanelVisibility (true, false);
+							break;
+						case BattleHUD.CommandMenu.Change:
+							this.targetCursor = 0;
+							this.SendCommand (this.ProcessCommand (this.currentPlayerId, BattleHUD.CursorGroup.Individual));
+							this.SetIdle ();
+							break;
 					}
-				} else if (this.cursorType == BattleHUD.CursorGroup.AllPlayer || this.cursorType == BattleHUD.CursorGroup.AllEnemy || this.cursorType == BattleHUD.CursorGroup.All) {
-					this.CheckDoubleCast (-1, this.cursorType);
-				}
-			} else if (ButtonGroupState.ActiveGroup == BattleHUD.AbilityGroupButton) {
-				if (this.CheckAbilityStatus (go.GetComponent<RecycleListItem> ().ItemDataIndex) == BattleHUD.AbilityStatus.ABILSTAT_ENABLE) {
+				} else if (ButtonGroupState.ActiveGroup == BattleHUD.TargetGroupButton) {
 					FF9Sfx.FF9SFX_Play (103);
-					this.currentSubMenuIndex = go.GetComponent<RecycleListItem> ().ItemDataIndex;
-					if (this.currentCommandIndex == BattleHUD.CommandMenu.Ability1) {
-						this.ability1CursorMemorize[this.currentPlayerId] = this.currentSubMenuIndex;
+					if (this.cursorType == BattleHUD.CursorGroup.Individual) {
+						int num = this.targetHudList.IndexOf (this.targetHudList.Single ((BattleHUD.TargetHUD hud) => hud.Self == go));
+						if (num < HonoluluBattleMain.EnemyStartIndex) {
+							if (num < this.matchBattleIdPlayerList.Count) {
+								int battleIndex = this.matchBattleIdPlayerList[num];
+								this.CheckDoubleCast (battleIndex, this.cursorType);
+							}
+						} else if (num - HonoluluBattleMain.EnemyStartIndex < this.matchBattleIdEnemyList.Count) {
+							int battleIndex2 = this.matchBattleIdEnemyList[num - HonoluluBattleMain.EnemyStartIndex];
+							this.CheckDoubleCast (battleIndex2, this.cursorType);
+						}
+					} else if (this.cursorType == BattleHUD.CursorGroup.AllPlayer || this.cursorType == BattleHUD.CursorGroup.AllEnemy || this.cursorType == BattleHUD.CursorGroup.All) {
+						this.CheckDoubleCast (-1, this.cursorType);
+					}
+				} else if (ButtonGroupState.ActiveGroup == BattleHUD.AbilityGroupButton) {
+					if (this.CheckAbilityStatus (go.GetComponent<RecycleListItem> ().ItemDataIndex) == BattleHUD.AbilityStatus.ABILSTAT_ENABLE) {
+						FF9Sfx.FF9SFX_Play (103);
+						this.currentSubMenuIndex = go.GetComponent<RecycleListItem> ().ItemDataIndex;
+						if (this.currentCommandIndex == BattleHUD.CommandMenu.Ability1) {
+							this.ability1CursorMemorize[this.currentPlayerId] = this.currentSubMenuIndex;
+						} else {
+							this.ability2CursorMemorize[this.currentPlayerId] = this.currentSubMenuIndex;
+						}
+						this.SetAbilityPanelVisibility (false, false);
+						this.SetTargetVisibility (true);
 					} else {
-						this.ability2CursorMemorize[this.currentPlayerId] = this.currentSubMenuIndex;
+						FF9Sfx.FF9SFX_Play (102);
 					}
-					this.SetAbilityPanelVisibility (false, false);
-					this.SetTargetVisibility (true);
-				} else {
-					FF9Sfx.FF9SFX_Play (102);
-				}
-			} else if (ButtonGroupState.ActiveGroup == BattleHUD.ItemGroupButton) {
-				int num3 = this.itemIdList[this.currentSubMenuIndex];
-				if (num3 != 255) {
-					FF9Sfx.FF9SFX_Play (103);
-					this.currentSubMenuIndex = go.GetComponent<RecycleListItem> ().ItemDataIndex;
-					this.itemCursorMemorize[this.currentPlayerId] = this.currentSubMenuIndex;
-					this.SetItemPanelVisibility (false, false);
-					this.SetTargetVisibility (true);
-				} else {
-					FF9Sfx.FF9SFX_Play (102);
+				} else if (ButtonGroupState.ActiveGroup == BattleHUD.ItemGroupButton) {
+					if (this.itemIdList[this.currentSubMenuIndex] != 255) {
+						FF9Sfx.FF9SFX_Play (103);
+						this.currentSubMenuIndex = go.GetComponent<RecycleListItem> ().ItemDataIndex;
+						this.itemCursorMemorize[this.currentPlayerId] = this.currentSubMenuIndex;
+						this.SetItemPanelVisibility (false, false);
+						this.SetTargetVisibility (true);
+					} else {
+						FF9Sfx.FF9SFX_Play (102);
+					}
 				}
 			}
+			return true;
 		}
-		return true;
 	}
 
 	public override bool OnKeyCancel (GameObject go) {
 		if (UIManager.Input.GetKey (Control.Special)) {
 			return true;
 		}
-		if (base.OnKeyCancel (go) && !this.hidingHud) {
-			if (!(ButtonGroupState.ActiveGroup == BattleHUD.CommandGroupButton)) {
+		checked {
+			if (base.OnKeyCancel (go) && !this.hidingHud && !(ButtonGroupState.ActiveGroup == BattleHUD.CommandGroupButton)) {
 				if (ButtonGroupState.ActiveGroup == BattleHUD.TargetGroupButton) {
 					FF9Sfx.FF9SFX_Play (101);
 					this.SetTargetVisibility (false);
@@ -1818,8 +1891,8 @@ public class BattleHUD : UIScene {
 					this.OnKeyQuit ();
 				}
 			}
+			return true;
 		}
-		return true;
 	}
 
 	public override bool OnKeyMenu (GameObject go) {
@@ -1828,17 +1901,22 @@ public class BattleHUD : UIScene {
 				int item = this.readyQueue[0];
 				this.readyQueue.RemoveAt (0);
 				this.readyQueue.Add (item);
-				foreach (int num in this.readyQueue) {
+				using (List<int>.Enumerator enumerator = this.readyQueue.GetEnumerator ()) {
+					while (enumerator.MoveNext ()) {
+					int num = enumerator.Current;
 					if (!this.inputFinishedList.Contains (num) && !this.unconsciousStateList.Contains (num) && num != this.currentPlayerId) {
-						if (this.readyQueue.IndexOf (num) > 0) {
-							this.readyQueue.Remove (num);
-							this.readyQueue.Insert (0, num);
+					if (this.readyQueue.IndexOf (num) > 0) {
+					this.readyQueue.Remove (num);
+					this.readyQueue.Insert (0, num);
+							}
+							this.SwitchPlayer (num);
+							break;
 						}
-						this.SwitchPlayer (num);
-						break;
 					}
+					return true;
 				}
-			} else if (this.readyQueue.Count == 1) {
+			}
+			if (this.readyQueue.Count == 1) {
 				this.SwitchPlayer (this.readyQueue[0]);
 			}
 		}
@@ -1853,7 +1931,7 @@ public class BattleHUD : UIScene {
 			this.currentButtonGroup = ((!this.hidingHud) ? ButtonGroupState.ActiveGroup : this.currentButtonGroup);
 			this.FF9BMenu_EnableMenu (false);
 			Singleton<HUDMessage>.Instance.Pause (true);
-			this.Hide (delegate () {
+			this.Hide (delegate {
 				PersistenSingleton<UIManager>.Instance.ChangeUIState (UIManager.UIState.Pause);
 			});
 		}
@@ -1899,45 +1977,47 @@ public class BattleHUD : UIScene {
 	}
 
 	public override bool OnItemSelect (GameObject go) {
-		if (base.OnItemSelect (go)) {
-			if (ButtonGroupState.ActiveGroup == BattleHUD.CommandGroupButton) {
-				int siblingIndex = go.transform.GetSiblingIndex ();
-				if (siblingIndex != (int) this.currentCommandIndex) {
-					this.currentCommandIndex = (BattleHUD.CommandMenu) siblingIndex;
+		checked {
+			if (base.OnItemSelect (go)) {
+				if (ButtonGroupState.ActiveGroup == BattleHUD.CommandGroupButton) {
+					int siblingIndex = go.transform.GetSiblingIndex ();
+					if (siblingIndex != (int) this.currentCommandIndex) {
+						this.currentCommandIndex = (BattleHUD.CommandMenu) siblingIndex;
+					}
+				} else if (ButtonGroupState.ActiveGroup == BattleHUD.AbilityGroupButton || ButtonGroupState.ActiveGroup == BattleHUD.ItemGroupButton) {
+					this.currentSubMenuIndex = go.GetComponent<RecycleListItem> ().ItemDataIndex;
 				}
-			} else if (ButtonGroupState.ActiveGroup == BattleHUD.AbilityGroupButton || ButtonGroupState.ActiveGroup == BattleHUD.ItemGroupButton) {
-				this.currentSubMenuIndex = go.GetComponent<RecycleListItem> ().ItemDataIndex;
-			}
-			if (ButtonGroupState.ActiveGroup == BattleHUD.TargetGroupButton) {
-				if (go.transform.parent == this.modelButtonManager.transform) {
-					if (this.cursorType == BattleHUD.CursorGroup.Individual) {
-						int index = go.GetComponent<ModelButton> ().index;
-						int num;
-						if (index < HonoluluBattleMain.EnemyStartIndex) {
-							num = this.matchBattleIdPlayerList.IndexOf (index);
-						} else {
-							num = this.matchBattleIdEnemyList.IndexOf (index) + 4;
-						}
-						if (num != -1) {
-							BattleHUD.TargetHUD targetHUD = this.targetHudList[num];
-							if (targetHUD.ButtonGroup.enabled) {
-								ButtonGroupState.ActiveButton = targetHUD.Self;
+				if (ButtonGroupState.ActiveGroup == BattleHUD.TargetGroupButton) {
+					if (go.transform.parent == this.modelButtonManager.transform) {
+						if (this.cursorType == BattleHUD.CursorGroup.Individual) {
+							int index = go.GetComponent<ModelButton> ().index;
+							int num;
+							if (index < HonoluluBattleMain.EnemyStartIndex) {
+								num = this.matchBattleIdPlayerList.IndexOf (index);
+							} else {
+								num = this.matchBattleIdEnemyList.IndexOf (index) + 4;
+							}
+							if (num != -1) {
+								BattleHUD.TargetHUD targetHUD = this.targetHudList[num];
+								if (targetHUD.ButtonGroup.enabled) {
+									ButtonGroupState.ActiveButton = targetHUD.Self;
+								}
 							}
 						}
-					}
-				} else if (go.transform.parent.parent == this.TargetPanel.transform && this.cursorType == BattleHUD.CursorGroup.Individual) {
-					int num2 = go.transform.GetSiblingIndex ();
-					if (go.GetParent ().transform.GetSiblingIndex () == 1) {
-						num2 += HonoluluBattleMain.EnemyStartIndex;
-					}
-					if (this.currentTargetIndex != num2) {
-						this.currentTargetIndex = num2;
-						this.DisplayTargetPointer ();
+					} else if (go.transform.parent.parent == this.TargetPanel.transform && this.cursorType == BattleHUD.CursorGroup.Individual) {
+						int num2 = go.transform.GetSiblingIndex ();
+						if (go.GetParent ().transform.GetSiblingIndex () == 1) {
+							num2 += HonoluluBattleMain.EnemyStartIndex;
+						}
+						if (this.currentTargetIndex != num2) {
+							this.currentTargetIndex = num2;
+							this.DisplayTargetPointer ();
+						}
 					}
 				}
 			}
+			return true;
 		}
-		return true;
 	}
 
 	private void OnAllTargetHover (GameObject go, bool isHover) {
@@ -1947,6 +2027,7 @@ public class BattleHUD : UIScene {
 					FF9Sfx.FF9SFX_Play (103);
 					this.cursorType = BattleHUD.CursorGroup.AllPlayer;
 					this.DisplayTargetPointer ();
+					return;
 				}
 			} else if (go == this.allEnemyButton && this.cursorType != BattleHUD.CursorGroup.AllEnemy) {
 				FF9Sfx.FF9SFX_Play (103);
@@ -1962,6 +2043,7 @@ public class BattleHUD : UIScene {
 				FF9Sfx.FF9SFX_Play (103);
 				this.cursorType = BattleHUD.CursorGroup.AllPlayer;
 				this.DisplayTargetPointer ();
+				return;
 			}
 		} else if (this.cursorType == BattleHUD.CursorGroup.AllPlayer && this.targetCursor == 3 && key == KeyCode.LeftArrow) {
 			FF9Sfx.FF9SFX_Play (103);
@@ -1974,20 +2056,24 @@ public class BattleHUD : UIScene {
 		if (this.cursorType == BattleHUD.CursorGroup.All) {
 			FF9Sfx.FF9SFX_Play (103);
 			this.CheckDoubleCast (-1, this.cursorType);
-		} else if (UICamera.currentTouchID == 0 || UICamera.currentTouchID == 1) {
+			return;
+		}
+		if (UICamera.currentTouchID == 0 || UICamera.currentTouchID == 1) {
 			FF9Sfx.FF9SFX_Play (103);
 			if (go == this.allPlayerButton) {
 				if (this.cursorType == BattleHUD.CursorGroup.AllPlayer) {
 					this.CheckDoubleCast (-1, this.cursorType);
-				} else {
-					this.OnTargetNavigate (go, KeyCode.RightArrow);
+					return;
 				}
+				this.OnTargetNavigate (go, KeyCode.RightArrow);
+				return;
 			} else if (go == this.allEnemyButton) {
 				if (this.cursorType == BattleHUD.CursorGroup.AllEnemy) {
 					this.CheckDoubleCast (-1, this.cursorType);
-				} else {
-					this.OnTargetNavigate (go, KeyCode.LeftArrow);
+					return;
 				}
+				this.OnTargetNavigate (go, KeyCode.LeftArrow);
+				return;
 			}
 		} else if (UICamera.currentTouchID == -1) {
 			FF9Sfx.FF9SFX_Play (103);
@@ -2006,6 +2092,7 @@ public class BattleHUD : UIScene {
 			int playerId = this.playerDetailPanelList[siblingIndex].PlayerId;
 			if (this.readyQueue.Contains (playerId) && !this.inputFinishedList.Contains (playerId) && !this.unconsciousStateList.Contains (playerId) && playerId != this.currentPlayerId) {
 				this.SwitchPlayer (playerId);
+				return;
 			}
 		} else {
 			base.onClick (go);
@@ -2062,32 +2149,33 @@ public class BattleHUD : UIScene {
 		this.modelButtonManager.WorldCamera = PersistenSingleton<UIManager>.Instance.BattleCamera;
 		this.ManageAbility ();
 		this.InitHpMp ();
-		for (BTL_DATA next = FF9StateSystem.Battle.FF9Battle.btl_list.next; next != null; next = next.next) {
-			int num = 0;
-			while (1 << num != (int) next.btl_id) {
-				num++;
-			}
-			if (next.bi.target != 0) {
-				if (next.bi.player != 0) {
-					this.matchBattleIdPlayerList.Add (num);
-				} else {
-					this.matchBattleIdEnemyList.Add (num);
+		checked {
+			for (BTL_DATA next = FF9StateSystem.Battle.FF9Battle.btl_list.next; next != null; next = next.next) {
+				int num = 0;
+				while (1 << num != (int) next.btl_id) {
+					num++;
+				}
+				if (next.bi.target != 0) {
+					if (next.bi.player != 0) {
+						this.matchBattleIdPlayerList.Add (num);
+					} else {
+						this.matchBattleIdEnemyList.Add (num);
+					}
 				}
 			}
-		}
-		int num2 = 0;
-		foreach (int num3 in this.matchBattleIdPlayerList) {
-			if (num2 != num3) {
-				global::Debug.LogWarning ("This Battle, player index and id not the same. Please be careful.");
-				break;
+			int num2 = 0;
+			foreach (int num3 in this.matchBattleIdPlayerList) {
+				if (num2 != num3) {
+					global::Debug.LogWarning ("This Battle, player index and id not the same. Please be careful.");
+					break;
+				}
+				num2++;
 			}
-			num2++;
 		}
 	}
 
 	public void GoToBattleResult () {
-		bool flag = this.oneTime;
-		if (flag) {
+		if (this.oneTime) {
 			this.oneTime = false;
 			Application.targetFrameRate = 60;
 			this.uiRoot.scalingStyle = UIRoot.Scaling.Constrained;
@@ -2099,8 +2187,7 @@ public class BattleHUD : UIScene {
 	}
 
 	public void GoToGameOver () {
-		bool flag = this.oneTime;
-		if (flag) {
+		if (this.oneTime) {
 			this.oneTime = false;
 			Application.targetFrameRate = 60;
 			this.uiRoot.scalingStyle = UIRoot.Scaling.Constrained;
@@ -2128,29 +2215,31 @@ public class BattleHUD : UIScene {
 		BattleHUD.CommandDetail commandDetail = new BattleHUD.CommandDetail ();
 		commandDetail.CommandId = this.currentCommandId;
 		commandDetail.SubId = 0u;
-		int type = (int) rdata._FF9FAbil_ComData[(int) ((UIntPtr) commandDetail.CommandId)].type;
-		if (type == 0) {
-			commandDetail.SubId = (uint) rdata._FF9FAbil_ComData[(int) ((UIntPtr) commandDetail.CommandId)].ability;
+		checked {
+			int type = (int) rdata._FF9FAbil_ComData[(int) ((uint) ((UIntPtr) commandDetail.CommandId))].type;
+			if (type == 0) {
+				commandDetail.SubId = (uint) rdata._FF9FAbil_ComData[(int) ((uint) ((UIntPtr) commandDetail.CommandId))].ability;
+			}
+			if (type == 1) {
+				int num = (int) rdata._FF9FAbil_ComData[(int) ((uint) ((UIntPtr) commandDetail.CommandId))].ability;
+				commandDetail.SubId = (uint) this.PatchAbility (rdata._FF9BMenu_ComAbil[num + this.currentSubMenuIndex]);
+			} else if (type == 2 || type == 3) {
+				int num2 = this.itemIdList[this.currentSubMenuIndex];
+				commandDetail.SubId = (uint) num2;
+			}
+			commandDetail.TargetId = 0;
+			if (cursor == BattleHUD.CursorGroup.Individual) {
+				commandDetail.TargetId = (ushort) (1 << target);
+			} else if (cursor == BattleHUD.CursorGroup.AllPlayer) {
+				commandDetail.TargetId = 15;
+			} else if (cursor == BattleHUD.CursorGroup.AllEnemy) {
+				commandDetail.TargetId = 240;
+			} else if (cursor == BattleHUD.CursorGroup.All) {
+				commandDetail.TargetId = 255;
+			}
+			commandDetail.TargetType = (uint) this.GetSelectMode (cursor);
+			return commandDetail;
 		}
-		if (type == 1) {
-			int num = (int) rdata._FF9FAbil_ComData[(int) ((UIntPtr) commandDetail.CommandId)].ability;
-			commandDetail.SubId = (uint) this.PatchAbility (rdata._FF9BMenu_ComAbil[num + this.currentSubMenuIndex]);
-		} else if (type == 2 || type == 3) {
-			int subId = this.itemIdList[this.currentSubMenuIndex];
-			commandDetail.SubId = (uint) subId;
-		}
-		commandDetail.TargetId = 0;
-		if (cursor == BattleHUD.CursorGroup.Individual) {
-			commandDetail.TargetId = (ushort) (1 << target);
-		} else if (cursor == BattleHUD.CursorGroup.AllPlayer) {
-			commandDetail.TargetId = 15;
-		} else if (cursor == BattleHUD.CursorGroup.AllEnemy) {
-			commandDetail.TargetId = 240;
-		} else if (cursor == BattleHUD.CursorGroup.All) {
-			commandDetail.TargetId = 255;
-		}
-		commandDetail.TargetType = (uint) this.GetSelectMode (cursor);
-		return commandDetail;
 	}
 
 	private void SendCommand (BattleHUD.CommandDetail command) {
@@ -2170,8 +2259,7 @@ public class BattleHUD : UIScene {
 		CMD_DATA cmd_DATA = FF9StateSystem.Battle.FF9Battle.btl_data[this.currentPlayerId].cmd[3];
 		cmd_DATA.regist.sel_mode = 1;
 		btl_cmd.SetCommand (cmd_DATA, firstCommand.CommandId, firstCommand.SubId, firstCommand.TargetId, firstCommand.TargetType);
-		cmd_DATA = FF9StateSystem.Battle.FF9Battle.btl_data[this.currentPlayerId].cmd[0];
-		btl_cmd.SetCommand (cmd_DATA, secondCommand.CommandId, secondCommand.SubId, secondCommand.TargetId, secondCommand.TargetType);
+		btl_cmd.SetCommand (FF9StateSystem.Battle.FF9Battle.btl_data[this.currentPlayerId].cmd[0], secondCommand.CommandId, secondCommand.SubId, secondCommand.TargetId, secondCommand.TargetType);
 		this.SetPartySwapButtonActive (false);
 		this.inputFinishedList.Add (this.currentPlayerId);
 		BattleHUD.PlayerDetailHUD playerDetailHUD = this.playerDetailPanelList.Find ((BattleHUD.PlayerDetailHUD hud) => hud.PlayerId == this.currentPlayerId);
@@ -2212,56 +2300,56 @@ public class BattleHUD : UIScene {
 		GameObject gameObject = this.commandDetailHUD.Attack;
 		this.SetPartySwapButtonActive (isVisible);
 		this.BackButton.SetActive (!isVisible && FF9StateSystem.MobilePlatform);
-		if (isVisible) {
-			if (!this.commandDetailHUD.Self.activeSelf) {
-				this.commandDetailHUD.Self.SetActive (true);
-				ButtonGroupState.RemoveCursorMemorize (BattleHUD.CommandGroupButton);
-				if ((this.commandCursorMemorize.ContainsKey (this.currentPlayerId) && FF9StateSystem.Settings.cfg.cursor != 0UL) || forceCursorMemo) {
-					gameObject = this.commandDetailHUD.GetGameObjectFromCommand (this.commandCursorMemorize[this.currentPlayerId]);
-				}
-				if (gameObject.GetComponent<ButtonGroupState> ().enabled) {
-					ButtonGroupState.SetCursorMemorize (gameObject, BattleHUD.CommandGroupButton);
-				} else {
-					ButtonGroupState.SetCursorMemorize (this.commandDetailHUD.Attack, BattleHUD.CommandGroupButton);
-				}
-			} else {
-				if ((this.commandCursorMemorize.ContainsKey (this.currentPlayerId) && FF9StateSystem.Settings.cfg.cursor != 0UL) || forceCursorMemo) {
-					gameObject = this.commandDetailHUD.GetGameObjectFromCommand (this.commandCursorMemorize[this.currentPlayerId]);
-				}
-				if (gameObject.GetComponent<ButtonGroupState> ().enabled) {
-					ButtonGroupState.ActiveButton = gameObject;
-				} else {
-					ButtonGroupState.ActiveButton = this.commandDetailHUD.Attack;
-				}
-			}
-			if (!this.hidingHud) {
-				ButtonGroupState.ActiveGroup = BattleHUD.CommandGroupButton;
-			} else {
-				this.currentButtonGroup = BattleHUD.CommandGroupButton;
-			}
-		} else {
+		if (!isVisible) {
 			this.commandCursorMemorize[this.currentPlayerId] = this.currentCommandIndex;
 			this.commandDetailHUD.Self.SetActive (false);
+			return;
 		}
+		if (!this.commandDetailHUD.Self.activeSelf) {
+			this.commandDetailHUD.Self.SetActive (true);
+			ButtonGroupState.RemoveCursorMemorize (BattleHUD.CommandGroupButton);
+			if ((this.commandCursorMemorize.ContainsKey (this.currentPlayerId) && FF9StateSystem.Settings.cfg.cursor > 0UL) || forceCursorMemo) {
+				gameObject = this.commandDetailHUD.GetGameObjectFromCommand (this.commandCursorMemorize[this.currentPlayerId]);
+			}
+			if (gameObject.GetComponent<ButtonGroupState> ().enabled) {
+				ButtonGroupState.SetCursorMemorize (gameObject, BattleHUD.CommandGroupButton);
+			} else {
+				ButtonGroupState.SetCursorMemorize (this.commandDetailHUD.Attack, BattleHUD.CommandGroupButton);
+			}
+		} else {
+			if ((this.commandCursorMemorize.ContainsKey (this.currentPlayerId) && FF9StateSystem.Settings.cfg.cursor > 0UL) || forceCursorMemo) {
+				gameObject = this.commandDetailHUD.GetGameObjectFromCommand (this.commandCursorMemorize[this.currentPlayerId]);
+			}
+			if (gameObject.GetComponent<ButtonGroupState> ().enabled) {
+				ButtonGroupState.ActiveButton = gameObject;
+			} else {
+				ButtonGroupState.ActiveButton = this.commandDetailHUD.Attack;
+			}
+		}
+		if (!this.hidingHud) {
+			ButtonGroupState.ActiveGroup = BattleHUD.CommandGroupButton;
+			return;
+		}
+		this.currentButtonGroup = BattleHUD.CommandGroupButton;
 	}
 
 	private void SetItemPanelVisibility (bool isVisible, bool forceCursorMemo) {
 		if (isVisible) {
 			this.ItemPanel.SetActive (true);
 			ButtonGroupState.RemoveCursorMemorize (BattleHUD.ItemGroupButton);
-			if ((this.itemCursorMemorize.ContainsKey (this.currentPlayerId) && FF9StateSystem.Settings.cfg.cursor != 0UL) || forceCursorMemo) {
+			if ((this.itemCursorMemorize.ContainsKey (this.currentPlayerId) && FF9StateSystem.Settings.cfg.cursor > 0UL) || forceCursorMemo) {
 				this.itemScrollList.JumpToIndex (this.itemCursorMemorize[this.currentPlayerId], true);
 			} else {
 				this.itemScrollList.JumpToIndex (0, false);
 			}
 			ButtonGroupState.RemoveCursorMemorize (BattleHUD.ItemGroupButton);
 			ButtonGroupState.ActiveGroup = BattleHUD.ItemGroupButton;
-		} else {
-			if (this.currentCommandIndex == BattleHUD.CommandMenu.Item && this.currentSubMenuIndex != -1) {
-				this.itemCursorMemorize[this.currentPlayerId] = this.currentSubMenuIndex;
-			}
-			this.ItemPanel.SetActive (false);
+			return;
 		}
+		if (this.currentCommandIndex == BattleHUD.CommandMenu.Item && this.currentSubMenuIndex != -1) {
+			this.itemCursorMemorize[this.currentPlayerId] = this.currentSubMenuIndex;
+		}
+		this.ItemPanel.SetActive (false);
 	}
 
 	private void SetAbilityPanelVisibility (bool isVisible, bool forceCursorMemo) {
@@ -2270,7 +2358,7 @@ public class BattleHUD : UIScene {
 				this.AbilityPanel.SetActive (true);
 				Dictionary<int, int> dictionary = (this.currentCommandIndex != BattleHUD.CommandMenu.Ability1) ? this.ability2CursorMemorize : this.ability1CursorMemorize;
 				ButtonGroupState.RemoveCursorMemorize (BattleHUD.AbilityGroupButton);
-				if ((dictionary.ContainsKey (this.currentPlayerId) && FF9StateSystem.Settings.cfg.cursor != 0UL) || forceCursorMemo) {
+				if ((dictionary.ContainsKey (this.currentPlayerId) && FF9StateSystem.Settings.cfg.cursor > 0UL) || forceCursorMemo) {
 					this.abilityScrollList.JumpToIndex (dictionary[this.currentPlayerId], true);
 				} else {
 					this.abilityScrollList.JumpToIndex (0, true);
@@ -2285,39 +2373,39 @@ public class BattleHUD : UIScene {
 			}
 			ButtonGroupState.ActiveGroup = BattleHUD.AbilityGroupButton;
 			ButtonGroupState.UpdateActiveButton ();
-		} else {
-			if (this.currentCommandIndex == BattleHUD.CommandMenu.Ability1 && this.currentSubMenuIndex != -1) {
-				this.ability1CursorMemorize[this.currentPlayerId] = this.currentSubMenuIndex;
-			} else if (this.currentCommandIndex == BattleHUD.CommandMenu.Ability2 && this.currentSubMenuIndex != -1) {
-				this.ability2CursorMemorize[this.currentPlayerId] = this.currentSubMenuIndex;
-			}
-			this.AbilityPanel.SetActive (false);
+			return;
 		}
+		if (this.currentCommandIndex == BattleHUD.CommandMenu.Ability1 && this.currentSubMenuIndex != -1) {
+			this.ability1CursorMemorize[this.currentPlayerId] = this.currentSubMenuIndex;
+		} else if (this.currentCommandIndex == BattleHUD.CommandMenu.Ability2 && this.currentSubMenuIndex != -1) {
+			this.ability2CursorMemorize[this.currentPlayerId] = this.currentSubMenuIndex;
+		}
+		this.AbilityPanel.SetActive (false);
 	}
 
 	private void SetTargetVisibility (bool isVisible) {
-		if (isVisible) {
-			byte targetAvalability = 0;
-			byte subMode = 0;
-			this.defaultTargetCursor = 0;
-			this.defaultTargetDead = 0;
-			this.targetDead = 0;
-			if (this.currentCommandIndex == BattleHUD.CommandMenu.Ability1 || this.currentCommandIndex == BattleHUD.CommandMenu.Ability2) {
-				rdata.FF9COMMAND ff9COMMAND = rdata._FF9FAbil_ComData[(int) ((UIntPtr) this.currentCommandId)];
-				int num;
-				if (ff9COMMAND.type == 1) {
-					num = rdata._FF9BMenu_ComAbil[(int) ff9COMMAND.ability + this.currentSubMenuIndex];
-				} else {
-					num = (int) ff9COMMAND.ability;
-				}
-				AA_DATA aa_DATA = FF9StateSystem.Battle.FF9Battle.aa_data[num];
-				targetAvalability = aa_DATA.Info.cursor;
-				this.defaultTargetCursor = aa_DATA.Info.def_cur;
-				this.defaultTargetDead = aa_DATA.Info.def_dead;
-				this.targetDead = aa_DATA.Info.dead;
-				subMode = aa_DATA.Info.sub_win;
-			} else if (this.currentCommandIndex != BattleHUD.CommandMenu.Attack) {
-				if (this.currentCommandIndex == BattleHUD.CommandMenu.Item) {
+		checked {
+			if (isVisible) {
+				byte targetAvalability = 0;
+				byte subMode = 0;
+				this.defaultTargetCursor = 0;
+				this.defaultTargetDead = 0;
+				this.targetDead = 0;
+				if (this.currentCommandIndex == BattleHUD.CommandMenu.Ability1 || this.currentCommandIndex == BattleHUD.CommandMenu.Ability2) {
+					rdata.FF9COMMAND ff9COMMAND = rdata._FF9FAbil_ComData[(int) ((uint) ((UIntPtr) this.currentCommandId))];
+					int num;
+					if (ff9COMMAND.type == 1) {
+						num = rdata._FF9BMenu_ComAbil[(int) ff9COMMAND.ability + this.currentSubMenuIndex];
+					} else {
+						num = (int) ff9COMMAND.ability;
+					}
+					AA_DATA aa_DATA = FF9StateSystem.Battle.FF9Battle.aa_data[num];
+					targetAvalability = aa_DATA.Info.cursor;
+					this.defaultTargetCursor = aa_DATA.Info.def_cur;
+					this.defaultTargetDead = aa_DATA.Info.def_dead;
+					this.targetDead = aa_DATA.Info.dead;
+					subMode = aa_DATA.Info.sub_win;
+				} else if (this.currentCommandIndex != BattleHUD.CommandMenu.Attack && this.currentCommandIndex == BattleHUD.CommandMenu.Item) {
 					ITEM_DATA item_DATA = ff9item._FF9Item_Info[this.itemIdList[this.currentSubMenuIndex] - 224];
 					targetAvalability = item_DATA.info.cursor;
 					this.defaultTargetCursor = item_DATA.info.def_cur;
@@ -2325,19 +2413,19 @@ public class BattleHUD : UIScene {
 					this.targetDead = item_DATA.info.dead;
 					subMode = item_DATA.info.sub_win;
 				}
+				this.isAllTarget = false;
+				this.TargetPanel.SetActive (true);
+				this.EnableTargetArea ();
+				this.DisplayTarget ();
+				this.DisplayStatus (subMode);
+				this.SetTargetAvalability (targetAvalability);
+				this.SetTargetDefault ();
+				this.SetTargetHelp ();
+				ButtonGroupState.ActiveGroup = BattleHUD.TargetGroupButton;
+				this.allTargetToggle.Set (this.isAllTarget);
+				this.DisplayTargetPointer ();
+				return;
 			}
-			this.isAllTarget = false;
-			this.TargetPanel.SetActive (true);
-			this.EnableTargetArea ();
-			this.DisplayTarget ();
-			this.DisplayStatus (subMode);
-			this.SetTargetAvalability (targetAvalability);
-			this.SetTargetDefault ();
-			this.SetTargetHelp ();
-			ButtonGroupState.ActiveGroup = BattleHUD.TargetGroupButton;
-			this.allTargetToggle.Set (this.isAllTarget);
-			this.DisplayTargetPointer ();
-		} else {
 			this.DisableTargetArea ();
 			this.ClearModelPointer ();
 			ButtonGroupState.SetAllTarget (false);
@@ -2360,129 +2448,127 @@ public class BattleHUD : UIScene {
 		if (cursor == 0) {
 			this.cursorType = BattleHUD.CursorGroup.Individual;
 			foreach (object obj in this.PlayerTargetPanel.transform) {
-				Transform transform = (Transform) obj;
-				ButtonGroupState.SetButtonEnable (transform.gameObject, true);
+				ButtonGroupState.SetButtonEnable (((Transform) obj).gameObject, true);
 			}
 			foreach (object obj2 in this.EnemyTargetPanel.transform) {
-				Transform transform2 = (Transform) obj2;
-				ButtonGroupState.SetButtonEnable (transform2.gameObject, true);
+				ButtonGroupState.SetButtonEnable (((Transform) obj2).gameObject, true);
 			}
 			this.AllTargetButton.SetActive (false);
 			this.allPlayerButton.SetActive (false);
 			this.allEnemyButton.SetActive (false);
-		} else if (cursor == 2) {
+			return;
+		}
+		if (cursor == 2) {
 			this.cursorType = BattleHUD.CursorGroup.Individual;
 			foreach (object obj3 in this.PlayerTargetPanel.transform) {
-				Transform transform3 = (Transform) obj3;
-				ButtonGroupState.SetButtonEnable (transform3.gameObject, false);
+				ButtonGroupState.SetButtonEnable (((Transform) obj3).gameObject, false);
 			}
 			foreach (object obj4 in this.EnemyTargetPanel.transform) {
-				Transform transform4 = (Transform) obj4;
-				ButtonGroupState.SetButtonEnable (transform4.gameObject, true);
+				ButtonGroupState.SetButtonEnable (((Transform) obj4).gameObject, true);
 			}
 			this.AllTargetButton.SetActive (false);
 			this.allPlayerButton.SetActive (false);
 			this.allEnemyButton.SetActive (false);
-		} else if (cursor == 1) {
+			return;
+		}
+		if (cursor == 1) {
 			this.cursorType = BattleHUD.CursorGroup.Individual;
 			foreach (object obj5 in this.PlayerTargetPanel.transform) {
-				Transform transform5 = (Transform) obj5;
-				ButtonGroupState.SetButtonEnable (transform5.gameObject, true);
+				ButtonGroupState.SetButtonEnable (((Transform) obj5).gameObject, true);
 			}
 			foreach (object obj6 in this.EnemyTargetPanel.transform) {
-				Transform transform6 = (Transform) obj6;
-				ButtonGroupState.SetButtonEnable (transform6.gameObject, false);
+				ButtonGroupState.SetButtonEnable (((Transform) obj6).gameObject, false);
 			}
 			this.AllTargetButton.SetActive (false);
 			this.allPlayerButton.SetActive (false);
 			this.allEnemyButton.SetActive (false);
-		} else if (cursor == 3) {
+			return;
+		}
+		if (cursor == 3) {
 			foreach (object obj7 in this.PlayerTargetPanel.transform) {
-				Transform transform7 = (Transform) obj7;
-				ButtonGroupState.SetButtonEnable (transform7.gameObject, true);
+				ButtonGroupState.SetButtonEnable (((Transform) obj7).gameObject, true);
 			}
 			foreach (object obj8 in this.EnemyTargetPanel.transform) {
-				Transform transform8 = (Transform) obj8;
-				ButtonGroupState.SetButtonEnable (transform8.gameObject, true);
+				ButtonGroupState.SetButtonEnable (((Transform) obj8).gameObject, true);
 			}
 			this.AllTargetButton.SetActive (FF9StateSystem.MobilePlatform);
 			this.allPlayerButton.SetActive (false);
 			this.allEnemyButton.SetActive (false);
-		} else if (cursor == 5) {
+			return;
+		}
+		if (cursor == 5) {
 			foreach (object obj9 in this.PlayerTargetPanel.transform) {
-				Transform transform9 = (Transform) obj9;
-				ButtonGroupState.SetButtonEnable (transform9.gameObject, false);
+				ButtonGroupState.SetButtonEnable (((Transform) obj9).gameObject, false);
 			}
 			foreach (object obj10 in this.EnemyTargetPanel.transform) {
-				Transform transform10 = (Transform) obj10;
-				ButtonGroupState.SetButtonEnable (transform10.gameObject, true);
+				ButtonGroupState.SetButtonEnable (((Transform) obj10).gameObject, true);
 			}
 			this.AllTargetButton.SetActive (FF9StateSystem.MobilePlatform);
 			this.allPlayerButton.SetActive (false);
 			this.allEnemyButton.SetActive (false);
-		} else if (cursor == 4) {
+			return;
+		}
+		if (cursor == 4) {
 			foreach (object obj11 in this.PlayerTargetPanel.transform) {
-				Transform transform11 = (Transform) obj11;
-				ButtonGroupState.SetButtonEnable (transform11.gameObject, true);
+				ButtonGroupState.SetButtonEnable (((Transform) obj11).gameObject, true);
 			}
 			foreach (object obj12 in this.EnemyTargetPanel.transform) {
-				Transform transform12 = (Transform) obj12;
-				ButtonGroupState.SetButtonEnable (transform12.gameObject, false);
+				ButtonGroupState.SetButtonEnable (((Transform) obj12).gameObject, false);
 			}
 			this.AllTargetButton.SetActive (FF9StateSystem.MobilePlatform);
 			this.allPlayerButton.SetActive (false);
 			this.allEnemyButton.SetActive (false);
-		} else if (cursor == 8 || cursor == 11) {
+			return;
+		}
+		if (cursor == 8 || cursor == 11) {
 			this.cursorType = BattleHUD.CursorGroup.AllEnemy;
 			foreach (object obj13 in this.PlayerTargetPanel.transform) {
-				Transform transform13 = (Transform) obj13;
-				ButtonGroupState.SetButtonEnable (transform13.gameObject, false);
+				ButtonGroupState.SetButtonEnable (((Transform) obj13).gameObject, false);
 			}
 			foreach (object obj14 in this.EnemyTargetPanel.transform) {
-				Transform transform14 = (Transform) obj14;
-				ButtonGroupState.SetButtonEnable (transform14.gameObject, true);
+				ButtonGroupState.SetButtonEnable (((Transform) obj14).gameObject, true);
 			}
 			this.AllTargetButton.SetActive (false);
 			this.allPlayerButton.SetActive (false);
 			this.allEnemyButton.SetActive (true);
 			this.isAllTarget = true;
-		} else if (cursor == 7 || cursor == 10) {
+			return;
+		}
+		if (cursor == 7 || cursor == 10) {
 			this.cursorType = BattleHUD.CursorGroup.AllPlayer;
 			foreach (object obj15 in this.PlayerTargetPanel.transform) {
-				Transform transform15 = (Transform) obj15;
-				ButtonGroupState.SetButtonEnable (transform15.gameObject, true);
+				ButtonGroupState.SetButtonEnable (((Transform) obj15).gameObject, true);
 			}
 			foreach (object obj16 in this.EnemyTargetPanel.transform) {
-				Transform transform16 = (Transform) obj16;
-				ButtonGroupState.SetButtonEnable (transform16.gameObject, false);
+				ButtonGroupState.SetButtonEnable (((Transform) obj16).gameObject, false);
 			}
 			this.AllTargetButton.SetActive (false);
 			this.allPlayerButton.SetActive (true);
 			this.allEnemyButton.SetActive (false);
 			this.isAllTarget = true;
-		} else if (cursor == 6 || cursor == 12 || cursor == 9) {
+			return;
+		}
+		if (cursor == 6 || cursor == 12 || cursor == 9) {
 			this.cursorType = BattleHUD.CursorGroup.All;
 			foreach (object obj17 in this.PlayerTargetPanel.transform) {
-				Transform transform17 = (Transform) obj17;
-				ButtonGroupState.SetButtonEnable (transform17.gameObject, true);
+				ButtonGroupState.SetButtonEnable (((Transform) obj17).gameObject, true);
 			}
 			foreach (object obj18 in this.EnemyTargetPanel.transform) {
-				Transform transform18 = (Transform) obj18;
-				ButtonGroupState.SetButtonEnable (transform18.gameObject, true);
+				ButtonGroupState.SetButtonEnable (((Transform) obj18).gameObject, true);
 			}
 			this.AllTargetButton.SetActive (false);
 			this.allPlayerButton.SetActive (true);
 			this.allEnemyButton.SetActive (true);
 			this.isAllTarget = true;
-		} else if (cursor == 13) {
+			return;
+		}
+		if (cursor == 13) {
 			this.cursorType = BattleHUD.CursorGroup.Individual;
 			foreach (object obj19 in this.PlayerTargetPanel.transform) {
-				Transform transform19 = (Transform) obj19;
-				ButtonGroupState.SetButtonEnable (transform19.gameObject, false);
+				ButtonGroupState.SetButtonEnable (((Transform) obj19).gameObject, false);
 			}
 			foreach (object obj20 in this.EnemyTargetPanel.transform) {
-				Transform transform20 = (Transform) obj20;
-				ButtonGroupState.SetButtonEnable (transform20.gameObject, false);
+				ButtonGroupState.SetButtonEnable (((Transform) obj20).gameObject, false);
 			}
 			int currentPlayerIndex = this.currentPlayerIndex;
 			ButtonGroupState.SetButtonEnable (this.PlayerTargetPanel.GetChild (currentPlayerIndex), true);
@@ -2495,59 +2581,63 @@ public class BattleHUD : UIScene {
 	private void SetTargetDefault () {
 		int num = 0;
 		int num2 = 4;
-		if (this.targetDead == 0) {
-			for (BTL_DATA next = FF9StateSystem.Battle.FF9Battle.btl_list.next; next != null; next = next.next) {
-				int num3 = 0;
-				while (1 << num3 != (int) next.btl_id) {
-					num3++;
-				}
-				if (next.btl_id != 0 && next.bi.target != 0) {
-					if (next.bi.player != 0) {
-						if (btl_stat.CheckStatus (next, 256u)) {
-							ButtonGroupState.SetButtonEnable (this.targetHudList[num].Self, false);
+		checked {
+			if (this.targetDead == 0) {
+				for (BTL_DATA next = FF9StateSystem.Battle.FF9Battle.btl_list.next; next != null; next = next.next) {
+					int num3 = 0;
+					while (1 << num3 != (int) next.btl_id) {
+						num3++;
+					}
+					if (next.btl_id != 0 && next.bi.target != 0) {
+						if (next.bi.player != 0) {
+							if (btl_stat.CheckStatus (next, 256u)) {
+								ButtonGroupState.SetButtonEnable (this.targetHudList[num].Self, false);
+							}
+							num++;
+						} else {
+							if (btl_stat.CheckStatus (next, 256u)) {
+								ButtonGroupState.SetButtonEnable (this.targetHudList[num2].Self, false);
+							}
+							num2++;
 						}
-						num++;
-					} else {
-						if (btl_stat.CheckStatus (next, 256u)) {
-							ButtonGroupState.SetButtonEnable (this.targetHudList[num2].Self, false);
-						}
-						num2++;
 					}
 				}
 			}
-		}
-		if (this.targetCursor == 0 || this.targetCursor == 1 || this.targetCursor == 2 || this.targetCursor == 3 || this.targetCursor == 4 || this.targetCursor == 5) {
+			if (this.targetCursor != 0 && this.targetCursor != 1 && this.targetCursor != 2 && this.targetCursor != 3 && this.targetCursor != 4 && this.targetCursor != 5) {
+				if (this.targetCursor == 13) {
+					int currentPlayerIndex = this.currentPlayerIndex;
+					ButtonGroupState.SetCursorStartSelect (this.targetHudList[currentPlayerIndex].Self, BattleHUD.TargetGroupButton);
+					this.currentTargetIndex = currentPlayerIndex;
+					ButtonGroupState.RemoveCursorMemorize (BattleHUD.TargetGroupButton);
+				}
+				return;
+			}
 			if (this.defaultTargetCursor == 1) {
 				if (this.defaultTargetDead != 0) {
 					int dead = (int) this.GetDead (true);
 					ButtonGroupState.SetCursorStartSelect (this.targetHudList[dead].Self, BattleHUD.TargetGroupButton);
 				} else {
-					int currentPlayerIndex = this.currentPlayerIndex;
-					ButtonGroupState.SetCursorStartSelect (this.targetHudList[currentPlayerIndex].Self, BattleHUD.TargetGroupButton);
+					int currentPlayerIndex2 = this.currentPlayerIndex;
+					ButtonGroupState.SetCursorStartSelect (this.targetHudList[currentPlayerIndex2].Self, BattleHUD.TargetGroupButton);
 				}
 				this.currentTargetIndex = 0;
 				ButtonGroupState.RemoveCursorMemorize (BattleHUD.TargetGroupButton);
-			} else {
-				int num4 = HonoluluBattleMain.EnemyStartIndex;
-				if (this.defaultTargetDead != 0) {
-					num4 = (int) this.GetDead (false);
-					ButtonGroupState.SetCursorStartSelect (this.targetHudList[num4].Self, BattleHUD.TargetGroupButton);
-				} else {
-					num4 = this.GetFirstEnemy () + HonoluluBattleMain.EnemyStartIndex;
-					if (num4 != -1) {
-						if (this.currentCommandIndex == BattleHUD.CommandMenu.Attack && FF9StateSystem.PCPlatform) {
-							this.ValidateDefaultTarget (ref num4);
-						}
-						ButtonGroupState.SetCursorStartSelect (this.targetHudList[num4].Self, BattleHUD.TargetGroupButton);
-					}
-				}
-				this.currentTargetIndex = num4;
-				ButtonGroupState.RemoveCursorMemorize (BattleHUD.TargetGroupButton);
+				return;
 			}
-		} else if (this.targetCursor == 13) {
-			int currentPlayerIndex2 = this.currentPlayerIndex;
-			ButtonGroupState.SetCursorStartSelect (this.targetHudList[currentPlayerIndex2].Self, BattleHUD.TargetGroupButton);
-			this.currentTargetIndex = currentPlayerIndex2;
+			int num4 = HonoluluBattleMain.EnemyStartIndex;
+			if (this.defaultTargetDead != 0) {
+				num4 = (int) this.GetDead (false);
+				ButtonGroupState.SetCursorStartSelect (this.targetHudList[num4].Self, BattleHUD.TargetGroupButton);
+			} else {
+				num4 = this.GetFirstEnemy () + HonoluluBattleMain.EnemyStartIndex;
+				if (num4 != -1) {
+					if (this.currentCommandIndex == BattleHUD.CommandMenu.Attack && FF9StateSystem.PCPlatform) {
+						this.ValidateDefaultTarget (ref num4);
+					}
+					ButtonGroupState.SetCursorStartSelect (this.targetHudList[num4].Self, BattleHUD.TargetGroupButton);
+				}
+			}
+			this.currentTargetIndex = num4;
 			ButtonGroupState.RemoveCursorMemorize (BattleHUD.TargetGroupButton);
 		}
 	}
@@ -2659,21 +2749,23 @@ public class BattleHUD : UIScene {
 		}
 		int num = 0;
 		int num2 = 4;
-		for (BTL_DATA next = FF9StateSystem.Battle.FF9Battle.btl_list.next; next != null; next = next.next) {
-			if (next.btl_id != 0 && next.bi.target != 0) {
-				if (next.bi.player != 0) {
-					BattleHUD.TargetHUD targetHUD = this.targetHudList[num];
-					string str2 = (!flag) ? string.Empty : btl_util.getPlayerPtr (next).name;
-					targetHUD.ButtonGroup.Help.Enable = true;
-					targetHUD.ButtonGroup.Help.Text = str + "\n" + str2;
-					num++;
-				} else {
-					BattleHUD.TargetHUD targetHUD2 = this.targetHudList[num2];
-					float num3 = 0f;
-					string str3 = (!flag) ? string.Empty : Singleton<HelpDialog>.Instance.PhraseLabel.PhrasePreOpcodeSymbol (btl_util.getEnemyPtr (next).et.name, ref num3);
-					targetHUD2.ButtonGroup.Help.Enable = true;
-					targetHUD2.ButtonGroup.Help.Text = str + "\n" + str3;
-					num2++;
+		checked {
+			for (BTL_DATA next = FF9StateSystem.Battle.FF9Battle.btl_list.next; next != null; next = next.next) {
+				if (next.btl_id != 0 && next.bi.target != 0) {
+					if (next.bi.player != 0) {
+						BattleHUD.TargetHUD targetHUD = this.targetHudList[num];
+						string str2 = (!flag) ? string.Empty : btl_util.getPlayerPtr (next).name;
+						targetHUD.ButtonGroup.Help.Enable = true;
+						targetHUD.ButtonGroup.Help.Text = str + "\n" + str2;
+						num++;
+					} else {
+						BattleHUD.TargetHUD targetHUD2 = this.targetHudList[num2];
+						float num3 = 0f;
+						string str3 = (!flag) ? string.Empty : Singleton<HelpDialog>.Instance.PhraseLabel.PhrasePreOpcodeSymbol (btl_util.getEnemyPtr (next).et.name, ref num3);
+						targetHUD2.ButtonGroup.Help.Enable = true;
+						targetHUD2.ButtonGroup.Help.Text = str + "\n" + str3;
+						num2++;
+					}
 				}
 			}
 		}
@@ -2697,14 +2789,14 @@ public class BattleHUD : UIScene {
 			this.currentButtonGroup = ButtonGroupState.ActiveGroup;
 			ButtonGroupState.DisableAllGroup (false);
 			ButtonGroupState.SetPointerVisibilityToGroup (active, this.currentButtonGroup);
-		} else {
-			if (this.currentButtonGroup == BattleHUD.CommandGroupButton && !this.CommandPanel.activeSelf) {
-				this.currentButtonGroup = string.Empty;
-			}
-			this.isTryingToRun = false;
-			ButtonGroupState.ActiveGroup = this.currentButtonGroup;
-			this.DisplayTargetPointer ();
+			return;
 		}
+		if (this.currentButtonGroup == BattleHUD.CommandGroupButton && !this.CommandPanel.activeSelf) {
+			this.currentButtonGroup = string.Empty;
+		}
+		this.isTryingToRun = false;
+		ButtonGroupState.ActiveGroup = this.currentButtonGroup;
+		this.DisplayTargetPointer ();
 	}
 
 	private void ProcessAutoBattleInput () {
@@ -2715,18 +2807,18 @@ public class BattleHUD : UIScene {
 		if (this.isAutoAttack) {
 			this.SetIdle ();
 			this.SetPartySwapButtonActive (false);
-		} else {
-			this.SetPartySwapButtonActive (true);
-			foreach (BattleHUD.PlayerDetailHUD playerDetailHUD in this.playerDetailPanelList) {
-				if (this.readyQueue.Contains (playerDetailHUD.PlayerId)) {
-					if (this.inputFinishedList.Contains (playerDetailHUD.PlayerId)) {
-						playerDetailHUD.ATBBlink = false;
-					} else {
-						playerDetailHUD.ATBBlink = true;
-					}
-				} else {
+			return;
+		}
+		this.SetPartySwapButtonActive (true);
+		foreach (BattleHUD.PlayerDetailHUD playerDetailHUD in this.playerDetailPanelList) {
+			if (this.readyQueue.Contains (playerDetailHUD.PlayerId)) {
+				if (this.inputFinishedList.Contains (playerDetailHUD.PlayerId)) {
 					playerDetailHUD.ATBBlink = false;
+				} else {
+					playerDetailHUD.ATBBlink = true;
 				}
+			} else {
+				playerDetailHUD.ATBBlink = false;
 			}
 		}
 	}
@@ -2758,11 +2850,14 @@ public class BattleHUD : UIScene {
 			this.HideHudHitAreaGameObject.SetActive (active);
 			if (!active) {
 				ButtonGroupState.DisableAllGroup (true);
-			} else if ((!this.isFromPause && ButtonGroupState.ActiveGroup == string.Empty) || this.isNeedToInit) {
+				return;
+			}
+			if ((!this.isFromPause && ButtonGroupState.ActiveGroup == string.Empty) || this.isNeedToInit) {
 				this.isNeedToInit = false;
 				this.InitialBattle ();
 				this.DisplayParty ();
 				this.SetIdle ();
+				return;
 			}
 		} else {
 			this.beforePauseCommandEnable = active;
@@ -2773,67 +2868,75 @@ public class BattleHUD : UIScene {
 	public void FF9BMenu_Enable (bool enable) { }
 
 	private int PatchAbility (int id) {
-		if (BattleHUD.AbilCarbuncle == id) {
-			BTL_DATA btl_DATA = FF9StateSystem.Battle.FF9Battle.btl_data[this.currentPlayerId];
-			switch (FF9StateSystem.Common.FF9.party.member[(int) btl_DATA.bi.line_no].equip[4]) {
-				case 227:
-					id += 3;
-					break;
-				case 228:
-					id++;
-					break;
-				case 229:
-					id += 2;
-					break;
+		checked {
+			if (BattleHUD.AbilCarbuncle == id) {
+				BTL_DATA btl_DATA = FF9StateSystem.Battle.FF9Battle.btl_data[this.currentPlayerId];
+				switch (FF9StateSystem.Common.FF9.party.member[(int) btl_DATA.bi.line_no].equip[4]) {
+					case 227:
+						id += 3;
+						break;
+					case 228:
+						id++;
+						break;
+					case 229:
+						id += 2;
+						break;
+				}
+			} else if (BattleHUD.AbilFenril == id) {
+				BTL_DATA btl_DATA2 = FF9StateSystem.Battle.FF9Battle.btl_data[this.currentPlayerId];
+				byte b = FF9StateSystem.Common.FF9.party.member[(int) btl_DATA2.bi.line_no].equip[4];
+				id += ((b != 222) ? 0 : 1);
 			}
-		} else if (BattleHUD.AbilFenril == id) {
-			BTL_DATA btl_DATA2 = FF9StateSystem.Battle.FF9Battle.btl_data[this.currentPlayerId];
-			byte b = FF9StateSystem.Common.FF9.party.member[(int) btl_DATA2.bi.line_no].equip[4];
-			id += ((b != 222) ? 0 : 1);
+			return id;
 		}
-		return id;
 	}
 
 	private ushort GetDead (bool player) {
 		ushort num = 0;
-		for (BTL_DATA next = FF9StateSystem.Battle.FF9Battle.btl_list.next; next != null; next = next.next) {
-			if (next.bi.target != 0 && (next.stat.cur & 256u) != 0u) {
-				if (player && next.bi.player != 0) {
-					return num;
+		checked {
+			for (BTL_DATA next = FF9StateSystem.Battle.FF9Battle.btl_list.next; next != null; next = next.next) {
+				if (next.bi.target != 0 && (next.stat.cur & 256u) != 0u) {
+					if (player && next.bi.player != 0) {
+						return num;
+					}
+					if (!player && next.bi.player == 0) {
+						return num;
+					}
+					num += 1;
 				}
-				if (!player && next.bi.player == 0) {
-					return num;
-				}
-				num += 1;
 			}
+			return (ushort) this.currentPlayerIndex;
 		}
-		return (ushort) this.currentPlayerIndex;
 	}
 
 	private int GetFirstPlayer () {
 		int num = -1;
-		for (BTL_DATA next = FF9StateSystem.Battle.FF9Battle.btl_list.next; next != null; next = next.next) {
-			if (next.bi.player != 0) {
-				num++;
+		checked {
+			for (BTL_DATA next = FF9StateSystem.Battle.FF9Battle.btl_list.next; next != null; next = next.next) {
+				if (next.bi.player != 0) {
+					num++;
+				}
+				if (next.bi.player != 0 && next.cur.hp != 0) {
+					return num;
+				}
 			}
-			if (next.bi.player != 0 && next.cur.hp != 0) {
-				return num;
-			}
+			return num;
 		}
-		return num;
 	}
 
 	private int GetFirstEnemy () {
 		int num = -1;
-		for (BTL_DATA next = FF9StateSystem.Battle.FF9Battle.btl_list.next; next != null; next = next.next) {
-			if (next.bi.player == 0) {
-				num++;
+		checked {
+			for (BTL_DATA next = FF9StateSystem.Battle.FF9Battle.btl_list.next; next != null; next = next.next) {
+				if (next.bi.player == 0) {
+					num++;
+				}
+				if (next.bi.player == 0 && next.cur.hp != 0) {
+					return num;
+				}
 			}
-			if (next.bi.player == 0 && next.cur.hp != 0) {
-				return num;
-			}
+			return num;
 		}
-		return num;
 	}
 
 	private BTL_DATA GetFirstEnemyPtr () {
@@ -2886,18 +2989,20 @@ public class BattleHUD : UIScene {
 	}
 
 	private void EnableTargetArea () {
-		for (BTL_DATA next = FF9StateSystem.Battle.FF9Battle.btl_list.next; next != null; next = next.next) {
-			if (next.bi.target != 0) {
-				int num = 0;
-				while (1 << num != (int) next.btl_id) {
-					num++;
-				}
-				if (next.bi.player != 0) {
-					Transform transform = next.gameObject.transform.GetChildByName ("bone" + next.tar_bone.ToString ("D3")).gameObject.transform;
-					this.modelButtonManager.Show (transform, num, false, (float) next.radius, (float) next.height);
-				} else {
-					Transform transform2 = next.gameObject.transform.GetChildByName ("bone" + next.tar_bone.ToString ("D3")).gameObject.transform;
-					this.modelButtonManager.Show (transform2, num, true, (float) next.radius, (float) next.height);
+		checked {
+			for (BTL_DATA next = FF9StateSystem.Battle.FF9Battle.btl_list.next; next != null; next = next.next) {
+				if (next.bi.target != 0) {
+					int num = 0;
+					while (1 << num != (int) next.btl_id) {
+						num++;
+					}
+					if (next.bi.player != 0) {
+						Transform transform = next.gameObject.transform.GetChildByName ("bone" + next.tar_bone.ToString ("D3")).gameObject.transform;
+						this.modelButtonManager.Show (transform, num, false, (float) next.radius, (float) next.height);
+					} else {
+						Transform transform2 = next.gameObject.transform.GetChildByName ("bone" + next.tar_bone.ToString ("D3")).gameObject.transform;
+						this.modelButtonManager.Show (transform2, num, true, (float) next.radius, (float) next.height);
+					}
 				}
 			}
 		}
@@ -2919,39 +3024,41 @@ public class BattleHUD : UIScene {
 	private void PointToModel (BattleHUD.CursorGroup selectType, int targetIndex = 0) {
 		this.ClearModelPointer ();
 		bool isBlink = false;
-		switch (selectType) {
-			case BattleHUD.CursorGroup.Individual:
-				if (targetIndex < HonoluluBattleMain.EnemyStartIndex) {
-					if (targetIndex < this.matchBattleIdPlayerList.Count) {
-						int item = this.matchBattleIdPlayerList[targetIndex];
-						this.targetIndexList.Add (item);
+		checked {
+			switch (selectType) {
+				case BattleHUD.CursorGroup.Individual:
+					if (targetIndex < HonoluluBattleMain.EnemyStartIndex) {
+						if (targetIndex < this.matchBattleIdPlayerList.Count) {
+							int item = this.matchBattleIdPlayerList[targetIndex];
+							this.targetIndexList.Add (item);
+						}
+					} else if (targetIndex - HonoluluBattleMain.EnemyStartIndex < this.matchBattleIdEnemyList.Count) {
+						int item2 = this.matchBattleIdEnemyList[targetIndex - HonoluluBattleMain.EnemyStartIndex];
+						this.targetIndexList.Add (item2);
 					}
-				} else if (targetIndex - HonoluluBattleMain.EnemyStartIndex < this.matchBattleIdEnemyList.Count) {
-					int item = this.matchBattleIdEnemyList[targetIndex - HonoluluBattleMain.EnemyStartIndex];
-					this.targetIndexList.Add (item);
-				}
-				isBlink = false;
-				break;
-			case BattleHUD.CursorGroup.AllPlayer:
-				this.targetIndexList = this.modelButtonManager.GetAllPlayerIndex ();
-				isBlink = true;
-				break;
-			case BattleHUD.CursorGroup.AllEnemy:
-				this.targetIndexList = this.modelButtonManager.GetAllEnemyIndex ();
-				isBlink = true;
-				break;
-			case BattleHUD.CursorGroup.All:
-				this.targetIndexList = this.modelButtonManager.GetAllIndex ();
-				isBlink = true;
-				break;
-		}
-		foreach (int index in this.targetIndexList) {
-			GameObject gameObject = this.modelButtonManager.GetGameObject (index);
-			Singleton<PointerManager>.Instance.PointerDepth = 0;
-			Singleton<PointerManager>.Instance.AttachPointerToGameObject (gameObject, true);
-			Singleton<PointerManager>.Instance.SetPointerBlinkAt (gameObject, isBlink);
-			Singleton<PointerManager>.Instance.SetPointerLimitRectBehavior (gameObject, PointerManager.LimitRectBehavior.Hide);
-			Singleton<PointerManager>.Instance.PointerDepth = 5;
+					isBlink = false;
+					break;
+				case BattleHUD.CursorGroup.AllPlayer:
+					this.targetIndexList = this.modelButtonManager.GetAllPlayerIndex ();
+					isBlink = true;
+					break;
+				case BattleHUD.CursorGroup.AllEnemy:
+					this.targetIndexList = this.modelButtonManager.GetAllEnemyIndex ();
+					isBlink = true;
+					break;
+				case BattleHUD.CursorGroup.All:
+					this.targetIndexList = this.modelButtonManager.GetAllIndex ();
+					isBlink = true;
+					break;
+			}
+			foreach (int index in this.targetIndexList) {
+				GameObject gameObject = this.modelButtonManager.GetGameObject (index);
+				Singleton<PointerManager>.Instance.PointerDepth = 0;
+				Singleton<PointerManager>.Instance.AttachPointerToGameObject (gameObject, true);
+				Singleton<PointerManager>.Instance.SetPointerBlinkAt (gameObject, isBlink);
+				Singleton<PointerManager>.Instance.SetPointerLimitRectBehavior (gameObject, PointerManager.LimitRectBehavior.Hide);
+				Singleton<PointerManager>.Instance.PointerDepth = 5;
+			}
 		}
 	}
 
@@ -2990,11 +3097,13 @@ public class BattleHUD : UIScene {
 		if (this.cursorType == BattleHUD.CursorGroup.Individual) {
 			this.PointToModel (this.cursorType, this.currentTargetIndex);
 			ButtonGroupState.SetAllTarget (false);
-		} else {
-			this.PointToModel (this.cursorType, 0);
-			foreach (BattleHUD.TargetHUD targetHUD in this.targetHudList) {
-				Singleton<PointerManager>.Instance.SetPointerVisibility (targetHUD.Self, false);
-			}
+			return;
+		}
+		this.PointToModel (this.cursorType, 0);
+		foreach (BattleHUD.TargetHUD targetHUD in this.targetHudList) {
+			Singleton<PointerManager>.Instance.SetPointerVisibility (targetHUD.Self, false);
+		}
+		checked {
 			if (this.cursorType == BattleHUD.CursorGroup.AllPlayer) {
 				List<GameObject> list = new List<GameObject> ();
 				for (int i = 0; i < this.playerCount; i++) {
@@ -3003,7 +3112,9 @@ public class BattleHUD : UIScene {
 					}
 				}
 				ButtonGroupState.SetMultipleTarget (list, true);
-			} else if (this.cursorType == BattleHUD.CursorGroup.AllEnemy) {
+				return;
+			}
+			if (this.cursorType == BattleHUD.CursorGroup.AllEnemy) {
 				List<GameObject> list2 = new List<GameObject> ();
 				for (int j = 0; j < this.enemyCount; j++) {
 					if (!this.currentEnemyDieState[j] || this.targetDead != 0) {
@@ -3011,9 +3122,9 @@ public class BattleHUD : UIScene {
 					}
 				}
 				ButtonGroupState.SetMultipleTarget (list2, true);
-			} else {
-				ButtonGroupState.SetAllTarget (true);
+				return;
 			}
+			ButtonGroupState.SetAllTarget (true);
 		}
 	}
 
@@ -3058,63 +3169,46 @@ public class BattleHUD : UIScene {
 
 	private void Update () {
 		BattleHUD.Read ();
-		bool isShowQuitUI = PersistenSingleton<UIManager>.Instance.QuitScene.isShowQuitUI;
-		bool flag = !isShowQuitUI;
-		bool flag2 = flag;
-		if (flag2) {
-			bool flag3 = PersistenSingleton<UIManager>.Instance.State == UIManager.UIState.BattleHUD;
-			bool flag4 = flag3;
-			bool flag5 = flag4;
-			if (flag5) {
-				this.UpdatePlayer ();
-				this.UpdateMessage ();
-				bool flag6 = this.commandEnable;
-				bool flag7 = flag6;
-				bool flag8 = flag7;
-				if (flag8) {
-					bool flag9 = (UIManager.Input.GetKey (Control.LeftBumper) && UIManager.Input.GetKey (Control.RightBumper)) || this.isTryingToRun;
-					bool flag10 = flag9;
-					bool flag11 = flag10;
-					if (flag11) {
-						this.runCounter += RealTime.deltaTime;
-						FF9StateSystem.Battle.FF9Battle.btl_escape_key = 1;
-						bool flag12 = this.runCounter > 1f;
-						bool flag13 = flag12;
-						bool flag14 = flag13;
-						if (flag14) {
-							this.runCounter = 0f;
-							btl_sys.CheckEscape (true);
-						} else {
-							btl_sys.CheckEscape (false);
-						}
-					} else {
+		if (!PersistenSingleton<UIManager>.Instance.QuitScene.isShowQuitUI && PersistenSingleton<UIManager>.Instance.State == UIManager.UIState.BattleHUD) {
+			this.UpdatePlayer ();
+			this.UpdateMessage ();
+			if (this.commandEnable) {
+				if ((UIManager.Input.GetKey (Control.LeftBumper) && UIManager.Input.GetKey (Control.RightBumper)) || this.isTryingToRun) {
+					this.runCounter += RealTime.deltaTime;
+					FF9StateSystem.Battle.FF9Battle.btl_escape_key = 1;
+					if (this.runCounter > 1f) {
 						this.runCounter = 0f;
-						FF9StateSystem.Battle.FF9Battle.btl_escape_key = 0;
-					}
-					bool key = UIManager.Input.GetKey (Control.Special);
-					bool flag15 = key;
-					bool flag16 = flag15;
-					if (flag16) {
-						this.abilityScrollList.Invoke ("RepositionList", 0.1f);
-						this.itemScrollList.Invoke ("RepositionList", 0.1f);
-						this.SetHudVisibility (false);
+						btl_sys.CheckEscape (true);
 					} else {
-						this.SetHudVisibility (true);
+						btl_sys.CheckEscape (false);
 					}
-					this.UpdateAndroidTV ();
-					this.SetScaleOfUI ();
+				} else {
+					this.runCounter = 0f;
+					FF9StateSystem.Battle.FF9Battle.btl_escape_key = 0;
 				}
+				if (UIManager.Input.GetKey (Control.Special)) {
+					this.abilityScrollList.Invoke ("RepositionList", 0.1f);
+					this.itemScrollList.Invoke ("RepositionList", 0.1f);
+					this.SetHudVisibility (false);
+				} else {
+					this.SetHudVisibility (true);
+				}
+				this.UpdateAndroidTV ();
+				this.SetScaleOfUI ();
+				this.ScaleCommand ();
 			}
 		}
 	}
 
 	public void ForceClearReadyQueue () {
-		for (int i = this.readyQueue.Count - 1; i >= 0; i--) {
-			BTL_DATA btl_DATA = FF9StateSystem.Battle.FF9Battle.btl_data[this.readyQueue[i]];
-			if (this.inputFinishedList.Contains (this.readyQueue[i])) {
-				this.inputFinishedList.Remove (this.readyQueue[i]);
+		checked {
+			for (int i = this.readyQueue.Count - 1; i >= 0; i--) {
+				BTL_DATA btl_DATA = FF9StateSystem.Battle.FF9Battle.btl_data[this.readyQueue[i]];
+				if (this.inputFinishedList.Contains (this.readyQueue[i])) {
+					this.inputFinishedList.Remove (this.readyQueue[i]);
+				}
+				this.readyQueue.RemoveAt (i);
 			}
-			this.readyQueue.RemoveAt (i);
 		}
 	}
 
@@ -3124,7 +3218,7 @@ public class BattleHUD : UIScene {
 			if (modelIndex < HonoluluBattleMain.EnemyStartIndex) {
 				num = this.matchBattleIdPlayerList.IndexOf (modelIndex);
 			} else {
-				num = this.matchBattleIdEnemyList.IndexOf (modelIndex) + 4;
+				num = checked (this.matchBattleIdEnemyList.IndexOf (modelIndex) + 4);
 			}
 			if (num != -1) {
 				FF9Sfx.FF9SFX_Play (103);
@@ -3146,11 +3240,13 @@ public class BattleHUD : UIScene {
 	}
 
 	private void ValidateDefaultTarget (ref int firstIndex) {
-		for (int i = firstIndex; i < this.targetHudList.Count; i++) {
-			BattleHUD.TargetHUD targetHUD = this.targetHudList[i];
-			if (targetHUD.Self.activeSelf && targetHUD.NameLabel.color != FF9TextTool.Gray) {
-				firstIndex = i;
-				break;
+		checked {
+			for (int i = firstIndex; i < this.targetHudList.Count; i++) {
+				BattleHUD.TargetHUD targetHUD = this.targetHudList[i];
+				if (targetHUD.Self.activeSelf && targetHUD.NameLabel.color != FF9TextTool.Gray) {
+					firstIndex = i;
+					return;
+				}
 			}
 		}
 	}
@@ -3158,11 +3254,10 @@ public class BattleHUD : UIScene {
 	private void Awake () {
 		base.FadingComponent = this.ScreenFadeGameObject.GetComponent<HonoFading> ();
 		foreach (object obj in this.PartyDetailPanel.GetChild (0).transform) {
-			Transform transform = (Transform) obj;
-			GameObject gameObject = transform.gameObject;
-			UIEventListener uieventListener = UIEventListener.Get (gameObject);
+			GameObject gameObject4 = ((Transform) obj).gameObject;
+			UIEventListener uieventListener = UIEventListener.Get (gameObject4);
 			uieventListener.onClick = (UIEventListener.VoidDelegate) Delegate.Combine (uieventListener.onClick, new UIEventListener.VoidDelegate (this.onPartyDetailClick));
-			BattleHUD.PlayerDetailHUD item = new BattleHUD.PlayerDetailHUD (gameObject);
+			BattleHUD.PlayerDetailHUD item = new BattleHUD.PlayerDetailHUD (gameObject4);
 			this.playerDetailPanelList.Add (item);
 		}
 		this.hpCaption = this.PartyDetailPanel.GetChild (1).GetChild (2);
@@ -3176,8 +3271,7 @@ public class BattleHUD : UIScene {
 		this.allTargetToggle.validator = new UIToggle.Validate (this.OnAllTargetToggleValidate);
 		this.allPlayerButton = this.TargetPanel.GetChild (2).GetChild (0);
 		this.allEnemyButton = this.TargetPanel.GetChild (2).GetChild (1);
-		bool mobilePlatform = FF9StateSystem.MobilePlatform;
-		if (mobilePlatform) {
+		if (FF9StateSystem.MobilePlatform) {
 			this.RunButton.SetActive (true);
 			UIEventListener uieventListener2 = UIEventListener.Get (this.RunButton);
 			uieventListener2.onPress = (UIEventListener.BoolDelegate) Delegate.Combine (uieventListener2.onPress, new UIEventListener.BoolDelegate (this.OnRunPress));
@@ -3201,8 +3295,7 @@ public class BattleHUD : UIScene {
 		this.CommandCaptionLabel = this.CommandPanel.GetChild (6).GetChild (2).GetComponent<UILabel> ();
 		this.commandDetailHUD = new BattleHUD.CommandHUD (this.CommandPanel);
 		foreach (object obj2 in this.PlayerTargetPanel.transform) {
-			Transform transform2 = (Transform) obj2;
-			GameObject gameObject2 = transform2.gameObject;
+			GameObject gameObject2 = ((Transform) obj2).gameObject;
 			UIEventListener uieventListener9 = UIEventListener.Get (gameObject2);
 			uieventListener9.onClick = (UIEventListener.VoidDelegate) Delegate.Combine (uieventListener9.onClick, new UIEventListener.VoidDelegate (this.onClick));
 			UIEventListener uieventListener10 = UIEventListener.Get (gameObject2);
@@ -3210,8 +3303,7 @@ public class BattleHUD : UIScene {
 			this.targetHudList.Add (new BattleHUD.TargetHUD (gameObject2));
 		}
 		foreach (object obj3 in this.EnemyTargetPanel.transform) {
-			Transform transform3 = (Transform) obj3;
-			GameObject gameObject3 = transform3.gameObject;
+			GameObject gameObject3 = ((Transform) obj3).gameObject;
 			UIEventListener uieventListener11 = UIEventListener.Get (gameObject3);
 			uieventListener11.onClick = (UIEventListener.VoidDelegate) Delegate.Combine (uieventListener11.onClick, new UIEventListener.VoidDelegate (this.onClick));
 			UIEventListener uieventListener12 = UIEventListener.Get (gameObject3);
@@ -3228,30 +3320,22 @@ public class BattleHUD : UIScene {
 		uieventListener16.onHover = (UIEventListener.BoolDelegate) Delegate.Combine (uieventListener16.onHover, new UIEventListener.BoolDelegate (this.OnAllTargetHover));
 		this.hpStatusPanel = this.StatusContainer.GetChild (0);
 		foreach (object obj4 in this.hpStatusPanel.GetChild (0).transform) {
-			Transform transform4 = (Transform) obj4;
-			GameObject gameObject4 = transform4.gameObject;
-			BattleHUD.NumberSubModeHUD item2 = new BattleHUD.NumberSubModeHUD (gameObject4);
+			BattleHUD.NumberSubModeHUD item2 = new BattleHUD.NumberSubModeHUD (((Transform) obj4).gameObject);
 			this.hpStatusHudList.Add (item2);
 		}
 		this.mpStatusPanel = this.StatusContainer.GetChild (1);
 		foreach (object obj5 in this.mpStatusPanel.GetChild (0).transform) {
-			Transform transform5 = (Transform) obj5;
-			GameObject gameObject5 = transform5.gameObject;
-			BattleHUD.NumberSubModeHUD item3 = new BattleHUD.NumberSubModeHUD (gameObject5);
+			BattleHUD.NumberSubModeHUD item3 = new BattleHUD.NumberSubModeHUD (((Transform) obj5).gameObject);
 			this.mpStatusHudList.Add (item3);
 		}
 		this.goodStatusPanel = this.StatusContainer.GetChild (2);
 		foreach (object obj6 in this.goodStatusPanel.GetChild (0).transform) {
-			Transform transform6 = (Transform) obj6;
-			GameObject gameObject6 = transform6.gameObject;
-			BattleHUD.StatusSubModeHUD item4 = new BattleHUD.StatusSubModeHUD (gameObject6);
+			BattleHUD.StatusSubModeHUD item4 = new BattleHUD.StatusSubModeHUD (((Transform) obj6).gameObject);
 			this.goodStatusHudList.Add (item4);
 		}
 		this.badStatusPanel = this.StatusContainer.GetChild (3);
 		foreach (object obj7 in this.badStatusPanel.GetChild (0).transform) {
-			Transform transform7 = (Transform) obj7;
-			GameObject gameObject7 = transform7.gameObject;
-			BattleHUD.StatusSubModeHUD item5 = new BattleHUD.StatusSubModeHUD (gameObject7);
+			BattleHUD.StatusSubModeHUD item5 = new BattleHUD.StatusSubModeHUD (((Transform) obj7).gameObject);
 			this.badStatusHudList.Add (item5);
 		}
 		this.itemScrollList = this.ItemPanel.GetChild (1).GetComponent<RecycleListPopulator> ();
@@ -3264,8 +3348,7 @@ public class BattleHUD : UIScene {
 			PersistenSingleton<UIManager>.Instance.SetMenuControlEnable (true);
 			PersistenSingleton<UIManager>.Instance.SetUIPauseEnable (true);
 			this.commandEnable = this.beforePauseCommandEnable;
-			bool flag = this.commandEnable;
-			if (flag) {
+			if (this.commandEnable) {
 				this.isFromPause = true;
 				this.FF9BMenu_EnableMenu (true);
 				this.DisplayTargetPointer ();
@@ -3274,12 +3357,15 @@ public class BattleHUD : UIScene {
 		};
 		this.uiRoot = this.abilityScrollList.gameObject.transform.root.GetComponent<UIRoot> ();
 		this.uiRect = this.uiRoot.GetComponent<UIRect> ();
+		this.attVec = new Vector4 (-175f, 112.5f, 345f, 112.5f);
+		this.sk1Vec = new Vector4 (-175f, 0f, 345f, 112.5f);
+		this.sk2Vec = new Vector4 (-175f, -112.5f, 345f, 112.5f);
+		this.itmVec = new Vector4 (-175f, -225f, 345f, 112.5f);
 	}
 
 	private void MoveUIObjectsForScale () {
 		BattleHUD.Write ();
-		float num = UIManager.UIActualScreenSize.x / UIManager.UIActualScreenSize.y;
-		if (num < 1.6f) {
+		if (UIManager.UIActualScreenSize.x / UIManager.UIActualScreenSize.y < 1.6f) {
 			this.abilityScrollList.gameObject.GetParent ().transform.localPosition = new Vector3 (-UIManager.UIActualScreenSize.x * 0.5f + (float) this.AbilityPanel.GetComponent<UIWidget> ().width * 0.52f, -UIManager.UIActualScreenSize.y * 0.5f + (float) this.AbilityPanel.GetComponent<UIWidget> ().height * 0.68f);
 			this.abilityScrollList.panel.RebuildAllDrawCalls ();
 			this.itemScrollList.gameObject.GetParent ().transform.localPosition = new Vector3 (-UIManager.UIActualScreenSize.x * 0.5f + (float) this.ItemPanel.GetComponent<UIWidget> ().width * 0.52f, -UIManager.UIActualScreenSize.y * 0.5f + (float) this.ItemPanel.GetComponent<UIWidget> ().height * 0.68f);
@@ -3302,32 +3388,30 @@ public class BattleHUD : UIScene {
 			ButtonGroupState.SetPointerOffsetToGroup (new Vector2 (10f, 0f), BattleHUD.CommandGroupButton);
 			ButtonGroupState.SetPointerLimitRectToGroup (this.AbilityPanel.GetComponent<UIWidget> (), this.abilityScrollList.cellHeight, BattleHUD.AbilityGroupButton);
 			ButtonGroupState.SetPointerLimitRectToGroup (this.ItemPanel.GetComponent<UIWidget> (), this.itemScrollList.cellHeight, BattleHUD.ItemGroupButton);
-		} else {
-			if (num > 1.6f) {
-				this.abilityScrollList.gameObject.GetParent ().transform.localPosition = new Vector3 (-UIManager.UIActualScreenSize.x * 0.5f + (float) this.AbilityPanel.GetComponent<UIWidget> ().width, -UIManager.UIActualScreenSize.y * 0.5f + (float) this.AbilityPanel.GetComponent<UIWidget> ().height / 1.75f);
-				this.abilityScrollList.panel.RebuildAllDrawCalls ();
-				this.itemScrollList.gameObject.GetParent ().transform.localPosition = new Vector3 (-UIManager.UIActualScreenSize.x * 0.5f + (float) this.AbilityPanel.GetComponent<UIWidget> ().width, -UIManager.UIActualScreenSize.y * 0.5f + (float) this.AbilityPanel.GetComponent<UIWidget> ().height / 1.75f);
-				this.itemScrollList.panel.RebuildAllDrawCalls ();
-				this.CommandPanel.gameObject.transform.localPosition = new Vector3 (-UIManager.UIActualScreenSize.x * 0.5f + (float) this.CommandPanel.GetComponent<UIWidget> ().width, -UIManager.UIActualScreenSize.y * 0.5f + (float) this.CommandPanel.GetComponent<UIWidget> ().height / 1.75f);
-				this.TargetPanel.gameObject.transform.localPosition = new Vector3 (-UIManager.UIActualScreenSize.x * 0.5f + (float) this.TargetPanel.GetComponent<UIWidget> ().width * 0.8f, -UIManager.UIActualScreenSize.y * 0.5f + (float) this.TargetPanel.GetComponent<UIWidget> ().height / 1.75f);
-				this.hpStatusPanel.transform.localPosition = new Vector3 (UIManager.UIActualScreenSize.x * 0.5f - (float) this.hpStatusPanel.GetComponent<UIWidget> ().width * 1f, -UIManager.UIActualScreenSize.y * 0.5f + (float) this.hpStatusPanel.GetComponent<UIWidget> ().height / 1.75f);
-				this.mpStatusPanel.transform.localPosition = new Vector3 (UIManager.UIActualScreenSize.x * 0.5f - (float) this.mpStatusPanel.GetComponent<UIWidget> ().width * 1f, -UIManager.UIActualScreenSize.y * 0.5f + (float) this.mpStatusPanel.GetComponent<UIWidget> ().height / 1.75f);
-				this.goodStatusPanel.transform.localPosition = new Vector3 (UIManager.UIActualScreenSize.x * 0.5f - (float) this.goodStatusPanel.GetComponent<UIWidget> ().width * 1f, -UIManager.UIActualScreenSize.y * 0.5f + (float) this.goodStatusPanel.GetComponent<UIWidget> ().height / 1.75f);
-				this.badStatusPanel.transform.localPosition = new Vector3 (UIManager.UIActualScreenSize.x * 0.5f - (float) this.badStatusPanel.GetComponent<UIWidget> ().width * 1f, -UIManager.UIActualScreenSize.y * 0.5f + (float) this.badStatusPanel.GetComponent<UIWidget> ().height / 1.75f);
-				this.PartyDetailPanel.gameObject.transform.localPosition = new Vector3 (UIManager.UIActualScreenSize.x * 0.5f - (float) this.PartyDetailPanel.GetComponent<UIWidget> ().width * 0.85f, -UIManager.UIActualScreenSize.y * 0.5f + (float) this.PartyDetailPanel.GetComponent<UIWidget> ().height / 1.75f);
-				this.PartyDetailPanel.GetComponent<UIWidget> ().panel.RebuildAllDrawCalls ();
-				this.BattleDialogGameObject.gameObject.transform.localPosition = new Vector3 (0f, UIManager.UIActualScreenSize.y * 0.5f - 100f);
-				this.BattleDialogGameObject.gameObject.transform.localScale = new Vector3 (1.1f, 1.1f);
-				ButtonGroupState.SetScrollButtonToGroup (this.abilityScrollList.ScrollButton, BattleHUD.AbilityGroupButton);
-				ButtonGroupState.SetScrollButtonToGroup (this.itemScrollList.ScrollButton, BattleHUD.ItemGroupButton);
-				ButtonGroupState.SetPointerOffsetToGroup (new Vector2 (34f, 0f), BattleHUD.AbilityGroupButton);
-				ButtonGroupState.SetPointerOffsetToGroup (new Vector2 (34f, 0f), BattleHUD.ItemGroupButton);
-				ButtonGroupState.SetPointerOffsetToGroup (new Vector2 (16f, 0f), BattleHUD.TargetGroupButton);
-				ButtonGroupState.SetPointerOffsetToGroup (new Vector2 (10f, 0f), BattleHUD.CommandGroupButton);
-				ButtonGroupState.SetPointerLimitRectToGroup (this.AbilityPanel.GetComponent<UIWidget> (), this.abilityScrollList.cellHeight, BattleHUD.AbilityGroupButton);
-				ButtonGroupState.SetPointerLimitRectToGroup (this.ItemPanel.GetComponent<UIWidget> (), this.itemScrollList.cellHeight, BattleHUD.ItemGroupButton);
-			}
+			return;
 		}
+		this.abilityScrollList.gameObject.GetParent ().transform.localPosition = new Vector3 (-UIManager.UIActualScreenSize.x * 0.5f + (float) this.AbilityPanel.GetComponent<UIWidget> ().width, -UIManager.UIActualScreenSize.y * 0.5f + (float) this.AbilityPanel.GetComponent<UIWidget> ().height / 1.75f);
+		this.abilityScrollList.panel.RebuildAllDrawCalls ();
+		this.itemScrollList.gameObject.GetParent ().transform.localPosition = new Vector3 (-UIManager.UIActualScreenSize.x * 0.5f + (float) this.AbilityPanel.GetComponent<UIWidget> ().width, -UIManager.UIActualScreenSize.y * 0.5f + (float) this.AbilityPanel.GetComponent<UIWidget> ().height / 1.75f);
+		this.itemScrollList.panel.RebuildAllDrawCalls ();
+		this.CommandPanel.gameObject.transform.localPosition = new Vector3 (-UIManager.UIActualScreenSize.x * 0.5f + (float) this.CommandPanel.GetComponent<UIWidget> ().width, -UIManager.UIActualScreenSize.y * 0.5f + (float) this.CommandPanel.GetComponent<UIWidget> ().height / 1.75f);
+		this.TargetPanel.gameObject.transform.localPosition = new Vector3 (-UIManager.UIActualScreenSize.x * 0.5f + (float) this.TargetPanel.GetComponent<UIWidget> ().width * 0.8f, -UIManager.UIActualScreenSize.y * 0.5f + (float) this.TargetPanel.GetComponent<UIWidget> ().height / 1.75f);
+		this.hpStatusPanel.transform.localPosition = new Vector3 (UIManager.UIActualScreenSize.x * 0.5f - (float) this.hpStatusPanel.GetComponent<UIWidget> ().width * 1f, -UIManager.UIActualScreenSize.y * 0.5f + (float) this.hpStatusPanel.GetComponent<UIWidget> ().height / 1.75f);
+		this.mpStatusPanel.transform.localPosition = new Vector3 (UIManager.UIActualScreenSize.x * 0.5f - (float) this.mpStatusPanel.GetComponent<UIWidget> ().width * 1f, -UIManager.UIActualScreenSize.y * 0.5f + (float) this.mpStatusPanel.GetComponent<UIWidget> ().height / 1.75f);
+		this.goodStatusPanel.transform.localPosition = new Vector3 (UIManager.UIActualScreenSize.x * 0.5f - (float) this.goodStatusPanel.GetComponent<UIWidget> ().width * 1f, -UIManager.UIActualScreenSize.y * 0.5f + (float) this.goodStatusPanel.GetComponent<UIWidget> ().height / 1.75f);
+		this.badStatusPanel.transform.localPosition = new Vector3 (UIManager.UIActualScreenSize.x * 0.5f - (float) this.badStatusPanel.GetComponent<UIWidget> ().width * 1f, -UIManager.UIActualScreenSize.y * 0.5f + (float) this.badStatusPanel.GetComponent<UIWidget> ().height / 1.75f);
+		this.PartyDetailPanel.gameObject.transform.localPosition = new Vector3 (UIManager.UIActualScreenSize.x * 0.5f - (float) this.PartyDetailPanel.GetComponent<UIWidget> ().width * 0.85f, -UIManager.UIActualScreenSize.y * 0.5f + (float) this.PartyDetailPanel.GetComponent<UIWidget> ().height / 1.75f);
+		this.PartyDetailPanel.GetComponent<UIWidget> ().panel.RebuildAllDrawCalls ();
+		this.BattleDialogGameObject.gameObject.transform.localPosition = new Vector3 (0f, UIManager.UIActualScreenSize.y * 0.5f - 100f);
+		this.BattleDialogGameObject.gameObject.transform.localScale = new Vector3 (1.1f, 1.1f);
+		ButtonGroupState.SetScrollButtonToGroup (this.abilityScrollList.ScrollButton, BattleHUD.AbilityGroupButton);
+		ButtonGroupState.SetScrollButtonToGroup (this.itemScrollList.ScrollButton, BattleHUD.ItemGroupButton);
+		ButtonGroupState.SetPointerOffsetToGroup (new Vector2 (34f, 0f), BattleHUD.AbilityGroupButton);
+		ButtonGroupState.SetPointerOffsetToGroup (new Vector2 (34f, 0f), BattleHUD.ItemGroupButton);
+		ButtonGroupState.SetPointerOffsetToGroup (new Vector2 (16f, 0f), BattleHUD.TargetGroupButton);
+		ButtonGroupState.SetPointerOffsetToGroup (new Vector2 (10f, 0f), BattleHUD.CommandGroupButton);
+		ButtonGroupState.SetPointerLimitRectToGroup (this.AbilityPanel.GetComponent<UIWidget> (), this.abilityScrollList.cellHeight, BattleHUD.AbilityGroupButton);
+		ButtonGroupState.SetPointerLimitRectToGroup (this.ItemPanel.GetComponent<UIWidget> (), this.itemScrollList.cellHeight, BattleHUD.ItemGroupButton);
 	}
 
 	public void SetScaleOfUI () {
@@ -3336,7 +3420,7 @@ public class BattleHUD : UIScene {
 		this.uiRoot.minimumHeight = Mathf.RoundToInt ((float) Screen.currentResolution.height * BattleHUD.scale);
 		base.FadingComponent.ForegroundSprite.GetComponent<UISprite> ().SetRect (0f, 0f, (float) Screen.currentResolution.width * BattleHUD.scale, (float) Screen.currentResolution.height * BattleHUD.scale);
 		base.FadingComponent.ForegroundSprite.CalculateBounds ();
-		this.uiRect.SetRect (-(float) Screen.currentResolution.width / BattleHUD.scale, -(float) Screen.currentResolution.height / BattleHUD.scale, (float) (checked (Screen.currentResolution.width * 3)), (float) (checked (Screen.currentResolution.height * 3)));
+		this.uiRect.SetRect (-UIManager.UIActualScreenSize.x / BattleHUD.scale, -UIManager.UIActualScreenSize.y / BattleHUD.scale, UIManager.UIActualScreenSize.x * 3f, UIManager.UIActualScreenSize.y * 3f);
 		this.uiRoot.UpdateScale (true);
 		this.uiRect.ResetAndUpdateAnchors ();
 		if (BattleHUD.scale > 1.1f) {
@@ -3351,11 +3435,11 @@ public class BattleHUD : UIScene {
 	public static void Write () {
 		if (BattleHUD.countdown >= 1f) {
 			BattleHUD.countdown -= Time.deltaTime;
-		} else {
-			BattleHUD.countdown = 2f;
-			BattleHUD.Read ();
-			BattleHUD.Write ();
+			return;
 		}
+		BattleHUD.countdown = 2f;
+		BattleHUD.Read ();
+		BattleHUD.Write ();
 	}
 
 	public static void Read () {
@@ -3363,28 +3447,72 @@ public class BattleHUD : UIScene {
 		MatchCollection matchCollection = Regex.Matches (File.ReadAllText (Application.dataPath + "\\Config.txt"), pattern);
 		string[] array = new string[20];
 		int num = 0;
-		foreach (object obj in matchCollection) {
-			Match match = (Match) obj;
-			array[num] = match.Value;
-			array[num] = array[num].Replace ("[", "");
-			array[num] = array[num].Replace ("]", "");
-			num++;
+		checked {
+			foreach (object obj in matchCollection) {
+				Match match = (Match) obj;
+				array[num] = match.Value;
+				array[num] = array[num].Replace ("[", "");
+				array[num] = array[num].Replace ("]", "");
+				num++;
+			}
+			BattleHUD.scale = float.Parse (array[0]);
+			BattleHUD.hD = int.Parse (array[1]);
+			BattleHUD.encounterRate = int.Parse (array[2]);
+			BattleHUD.battleSwirl = int.Parse (array[3]);
+			BattleHUD.battleSpeed = int.Parse (array[4]);
+			BattleHUD.Write ();
+			Console.WriteLine (string.Concat (new string[] {
+				"Scale:",
+				BattleHUD.scale.ToString (),
+				" BattleSwirl:",
+				BattleHUD.hD.ToString (),
+				" Encounter Rate:",
+				BattleHUD.encounterRate.ToString (),
+				" "
+			}));
 		}
-		BattleHUD.scale = float.Parse (array[0]);
-		BattleHUD.hD = int.Parse (array[1]);
-		BattleHUD.encounterRate = int.Parse (array[2]);
-		BattleHUD.battleSwirl = int.Parse (array[3]);
-		BattleHUD.battleSpeed = int.Parse (array[4]);
-		BattleHUD.Write ();
-		Console.WriteLine (string.Concat (new string[] {
-			"Scale:",
-			BattleHUD.scale.ToString (),
-			" BattleSwirl:",
-			BattleHUD.hD.ToString (),
-			" Encounter Rate:",
-			BattleHUD.encounterRate.ToString (),
-			" "
-		}));
+	}
+
+	public void ScaleCommand () {
+		UIWidget[] componentsInChildren = this.CommandPanel.GetComponentsInChildren<UIWidget> ();
+		foreach (UIWidget uiwidget in componentsInChildren) {
+			uiwidget.ResetAndUpdateAnchors ();
+			uiwidget.SetDirty ();
+		}
+		componentsInChildren[0].SetRect (-UIManager.UIActualScreenSize.x * 0.5125f + (float) this.CommandPanel.GetComponent<UIWidget> ().width, -UIManager.UIActualScreenSize.y * 0.625f + (float) this.CommandPanel.GetComponent<UIWidget> ().height / 1.75f, 350f, 450f);
+		if ((componentsInChildren[0].isVisible && UIManager.Input.GetKey (Control.Left)) || UIManager.Input.GetKey (Control.Right)) {
+			if (componentsInChildren[0].isVisible && UIManager.Input.GetKey (Control.Left)) {
+				this.commandDetailHUD.DefendComponent.Button.gameObject.SetActive (true);
+			}
+			if (componentsInChildren[0].isVisible && UIManager.Input.GetKey (Control.Right)) {
+				this.commandDetailHUD.ChangeComponent.Button.gameObject.SetActive (true);
+			}
+			this.commandDetailHUD.AttackComponent.Button.gameObject.SetActive (false);
+			this.commandDetailHUD.DefendComponent.Button.GetComponent<UIWidget> ().SetRect (this.attVec.x, this.attVec.y, this.attVec.z, this.attVec.w);
+			this.commandDetailHUD.ChangeComponent.Button.GetComponent<UIWidget> ().SetRect (this.attVec.x, this.attVec.y, this.attVec.z, this.attVec.w);
+			if (componentsInChildren[0].isVisible && UIManager.Input.GetKey (Control.Left)) {
+				ButtonGroupState.ActiveButton = this.commandDetailHUD.GetGameObjectFromCommand (BattleHUD.CommandMenu.Defend);
+			}
+			if (componentsInChildren[0].isVisible && UIManager.Input.GetKey (Control.Right)) {
+				ButtonGroupState.ActiveButton = this.commandDetailHUD.GetGameObjectFromCommand (BattleHUD.CommandMenu.Change);
+			}
+			ButtonGroupState.SetPointerOffsetToGroup (new Vector2 (10f, 0f), BattleHUD.CommandGroupButton);
+			return;
+		}
+		this.commandDetailHUD.AttackComponent.Button.gameObject.SetActive (true);
+		ButtonGroupState.SetPointerOffsetToGroup (new Vector2 (10f, 0f), BattleHUD.CommandGroupButton);
+		this.commandDetailHUD.ChangeComponent.Button.GetComponent<UIButton> ().gameObject.SetActive (false);
+		this.commandDetailHUD.DefendComponent.Button.GetComponent<UIButton> ().gameObject.SetActive (false);
+		this.commandDetailHUD.AttackComponent.Button.GetComponent<UIWidget> ().SetRect (this.attVec.x, this.attVec.y, this.attVec.z, this.attVec.w);
+		this.commandDetailHUD.Skill1Component.Button.GetComponent<UIWidget> ().SetRect (this.sk1Vec.x, this.sk1Vec.y, this.sk1Vec.z, this.sk1Vec.w);
+		this.commandDetailHUD.Skill2Component.Button.GetComponent<UIWidget> ().SetRect (this.sk2Vec.x, this.sk2Vec.y, this.sk2Vec.z, this.sk2Vec.w);
+		this.commandDetailHUD.ItemComponent.Button.GetComponent<UIWidget> ().SetRect (this.itmVec.x, this.itmVec.y, this.itmVec.z, this.itmVec.w);
+		this.commandDetailHUD.AttackComponent.Button.GetComponent<UIWidget> ().ResetAndUpdateAnchors ();
+		this.commandDetailHUD.DefendComponent.Button.GetComponent<UIWidget> ().ResetAndUpdateAnchors ();
+		this.commandDetailHUD.Skill1Component.Button.GetComponent<UIWidget> ().ResetAndUpdateAnchors ();
+		this.commandDetailHUD.Skill2Component.Button.GetComponent<UIWidget> ().ResetAndUpdateAnchors ();
+		this.commandDetailHUD.ChangeComponent.Button.GetComponent<UIWidget> ().ResetAndUpdateAnchors ();
+		this.commandDetailHUD.ItemComponent.Button.GetComponent<UIWidget> ().ResetAndUpdateAnchors ();
 	}
 
 	public const byte BTLMES_LEVEL_FOLLOW_0 = 0;
@@ -3986,6 +4114,16 @@ public class BattleHUD : UIScene {
 
 	public static int battleSpeed;
 
+	private BattleHUD.CommandMenu _lastCommandIndex;
+
+	private Vector4 attVec;
+
+	private Vector4 sk1Vec;
+
+	private Vector4 sk2Vec;
+
+	private Vector4 itmVec;
+
 	private struct HUDCompanent {
 		public HUDCompanent (GameObject go) {
 			this.ButtonGroup = go.GetComponent<ButtonGroupState> ();
@@ -4227,6 +4365,8 @@ public class BattleHUD : UIScene {
 	}
 
 	private class AbilityPlayerDetail {
+		public AbilityPlayerDetail () { }
+
 		public void Clear () {
 			this.AbilityEquipList.Clear ();
 			this.AbilityPaList.Clear ();
@@ -4245,6 +4385,8 @@ public class BattleHUD : UIScene {
 	}
 
 	private class MagicSwordCondition {
+		public MagicSwordCondition () { }
+
 		public override bool Equals (object obj) {
 			if (obj == null || base.GetType () != obj.GetType ()) {
 				return false;
@@ -4273,6 +4415,8 @@ public class BattleHUD : UIScene {
 	}
 
 	public class InfoVal {
+		public InfoVal () { }
+
 		public int inc_val;
 
 		public int disp_val;
@@ -4285,12 +4429,16 @@ public class BattleHUD : UIScene {
 	}
 
 	public class BattleItemListData : ListDataTypeBase {
+		public BattleItemListData () { }
+
 		public int Id;
 
 		public int Count;
 	}
 
 	public class BattleAbilityListData : ListDataTypeBase {
+		public BattleAbilityListData () { }
+
 		public int Index;
 	}
 
@@ -4338,6 +4486,8 @@ public class BattleHUD : UIScene {
 	}
 
 	private class CommandDetail {
+		public CommandDetail () { }
+
 		public uint CommandId;
 
 		public uint SubId;

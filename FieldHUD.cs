@@ -410,7 +410,7 @@ public class FieldHUD : UIScene {
     }
 
     private void Update () {
-        Read ();
+        BattleHUD.Read ();
         bool flag = this.previousDebugState != this.ShowDebugButton;
         if (flag) {
             this.previousDebugState = this.ShowDebugButton;
@@ -432,38 +432,7 @@ public class FieldHUD : UIScene {
     }
 
     private void Start () {
-        Read ();
-    }
-
-    public static void Read () {
-        string pattern = "\\[(.*?)\\]";
-        MatchCollection matchCollection = Regex.Matches (File.ReadAllText (Application.dataPath + "\\Config.txt"), pattern);
-        string[] array = new string[5];
-        int num = 0;
-        checked {
-            foreach (object obj in matchCollection) {
-                Match match = (Match) obj;
-                array[num] = match.Value;
-                array[num] = array[num].Replace ("[", "");
-                array[num] = array[num].Replace ("]", "");
-                num++;
-            }
-            BattleHUD.scale = float.Parse (array[0]);
-            BattleHUD.hD = int.Parse (array[1]);
-            BattleHUD.encounterRate = int.Parse (array[2]);
-            BattleHUD.battleSwirl = int.Parse (array[3]);
-            BattleHUD.battleSpeed = int.Parse (array[4]);
-            BattleHUD.Write ();
-            Console.WriteLine (string.Concat (new string[] {
-                "Scale:",
-                BattleHUD.scale.ToString (),
-                " BattleSwirl:",
-                BattleHUD.hD.ToString (),
-                " Encounter Rate:",
-                BattleHUD.encounterRate.ToString (),
-                " "
-            }));
-        }
+        BattleHUD.Read ();
     }
 
     public GameObject MinigameHUDContainer;
